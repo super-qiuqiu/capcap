@@ -100,7 +100,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             unregisterNonScreenshotHotkeys()
             keyMonitor?.isEnabled = true
             keyMonitor?.isRegularDoubleTapEnabled = !Defaults.hasCustomScreenshotHotkey
-            if Defaults.hasCustomScreenshotHotkey {
+            if Defaults.hasCustomScreenshotHotkey, keyMonitor?.usesEventTap != true {
                 HotkeyManager.shared.register { [weak self] in
                     self?.stopRecordingAndSave()
                 }
@@ -112,7 +112,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         keyMonitor?.isEnabled = true
-        if Defaults.hasCustomScreenshotHotkey {
+        if Defaults.hasCustomScreenshotHotkey, keyMonitor?.usesEventTap != true {
             HotkeyManager.shared.register { [weak self] in
                 self?.handleTrigger(fromShortcut: true)
             }

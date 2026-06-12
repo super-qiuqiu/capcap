@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 
 class KeyMonitor {
     /// Master switch. When false, neither trigger fires (used during shortcut recording).
@@ -24,6 +25,10 @@ class KeyMonitor {
     private var otherKeyPressed = false
     private let onTrigger: () -> Void
     private let onCountdownTrigger: () -> Void
+
+    var usesEventTap: Bool {
+        eventTap != nil
+    }
 
     init(onTrigger: @escaping () -> Void,
          onCountdownTrigger: @escaping () -> Void) {
@@ -95,7 +100,7 @@ class KeyMonitor {
         let mask = types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
 
         guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
+            tap: .cghidEventTap,
             place: .headInsertEventTap,
             options: .listenOnly,
             eventsOfInterest: mask,
@@ -125,6 +130,9 @@ class KeyMonitor {
                 CGEvent.tapEnable(tap: eventTap, enable: true)
             }
         case .keyDown:
+            if handleCustomScreenshotHotkey(event: event) {
+                return
+            }
             otherKeyPressed = true
         case .flagsChanged:
             let flags = event.flags
@@ -176,5 +184,65 @@ class KeyMonitor {
         }
 
         commandIsDown = cmd
+    }
+
+    private func handleCustomScreenshotHotkey(event: CGEvent) -> Bool {
+        guard isEnabled,
+              !isAutorepeat(event),
+              Defaults.hasCustomScreenshotHotkey
+        else {
+            return false
+        }
+
+        if let hotkey = HotkeyManager.shared.currentCountdownHotkey(),
+           eventMatches(event, hotkey: hotkey) {
+            MainRunLoopScheduler.perform { [weak self] in self?.onCountdownTrigger() }
+            return true
+        }
+
+        if let hotkey = HotkeyManager.shared.currentHotkey(),
+           eventMatches(event, hotkey: hotkey) {
+            MainRunLoopScheduler.perform { [weak self] in self?.onTrigger() }
+            return true
+        }
+
+        return false
+    }
+
+    private func eventMatches(_ event: CGEvent, hotkey: (keyCode: UInt32, modifiers: UInt32)) -> Bool {
+        let keyCode = UInt32(event.getIntegerValueField(.keyboardEventKeycode))
+        guard keyCode == hotkey.keyCode else { return false }
+
+        let actualFlags = event.flags.intersection(Self.hotkeyFlagMask)
+        let expectedFlags = Self.cgFlags(fromCarbonModifiers: hotkey.modifiers)
+        return actualFlags == expectedFlags
+    }
+
+    private func isAutorepeat(_ event: CGEvent) -> Bool {
+        event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+    }
+
+    private static let hotkeyFlagMask: CGEventFlags = [
+        .maskCommand,
+        .maskAlternate,
+        .maskShift,
+        .maskControl
+    ]
+
+    private static func cgFlags(fromCarbonModifiers modifiers: UInt32) -> CGEventFlags {
+        var flags: CGEventFlags = []
+        if modifiers & UInt32(cmdKey) != 0 {
+            flags.insert(.maskCommand)
+        }
+        if modifiers & UInt32(optionKey) != 0 {
+            flags.insert(.maskAlternate)
+        }
+        if modifiers & UInt32(shiftKey) != 0 {
+            flags.insert(.maskShift)
+        }
+        if modifiers & UInt32(controlKey) != 0 {
+            flags.insert(.maskControl)
+        }
+        return flags
     }
 }

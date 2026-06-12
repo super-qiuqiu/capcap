@@ -18,6 +18,8 @@ Package.resolved
 .claude/
 .codex/
 .agents/
+.trellis/
+.pi/
 .superpowers/
 docs/
 
