@@ -2,6 +2,55 @@ import AppKit
 import ScreenCaptureKit
 
 struct ScreenCapturer {
+    static func captureDisplaySnapshots(
+        for screens: [NSScreen],
+        fallbackScreens: [NSScreen]
+    ) -> [CGDirectDisplayID: DisplaySnapshot] {
+        guard !screens.isEmpty else { return [:] }
+
+        var result = cachedDisplaySnapshots(for: screens)
+        let missingScreens = fallbackScreens.filter { screen in
+            guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else {
+                return false
+            }
+            return result[displayID] == nil
+        }
+        guard !missingScreens.isEmpty else { return result }
+
+        let fallback = captureDisplaySnapshotsWithScreenshotManager(for: missingScreens)
+        result.merge(fallback) { cached, _ in cached }
+        return result
+    }
+
+    static func cachedDisplaySnapshots(for screens: [NSScreen]) -> [CGDirectDisplayID: DisplaySnapshot] {
+        let frames = ScreenFrameCache.shared.snapshotFrames(for: screens)
+        return frames.mapValues { frame in
+            DisplaySnapshot(displayID: frame.displayID, pixelBuffer: frame.pixelBuffer)
+        }
+    }
+
+    static func captureDisplaySnapshotsWithScreenshotManager(for screens: [NSScreen]) -> [CGDirectDisplayID: DisplaySnapshot] {
+        guard !screens.isEmpty else { return [:] }
+
+        let signpost = PerformanceSignposts.begin("SCScreenshotManagerDisplayFallback")
+        defer { PerformanceSignposts.end("SCScreenshotManagerDisplayFallback", signpost) }
+
+        var result: [CGDirectDisplayID: DisplaySnapshot] = [:]
+        let semaphore = DispatchSemaphore(value: 0)
+
+        Task {
+            do {
+                result = try await captureDisplaySnapshotsWithScreenshotManagerAsync(for: screens)
+            } catch {
+                NSLog("capcap: Display snapshot failed: \(error)")
+            }
+            semaphore.signal()
+        }
+
+        semaphore.wait()
+        return result
+    }
+
     /// - Parameter excludingWindowNumbers: window numbers (`NSWindow.windowNumber`)
     ///   to omit from the capture — used so capcap's own scroll-capture chrome
     ///   (e.g. the on-screen hint toast) is never baked into a captured frame.
@@ -118,6 +167,55 @@ struct ScreenCapturer {
         }
 
         return try await captureDisplay(display, rect: rect, excludingWindows: excludedWindows)
+    }
+
+    private static func captureDisplaySnapshotsWithScreenshotManagerAsync(for screens: [NSScreen]) async throws -> [CGDirectDisplayID: DisplaySnapshot] {
+        let content = try await SCShareableContent.current
+        let requests = screens.compactMap { screen -> (CGDirectDisplayID, SCDisplay, CGFloat, CGRect)? in
+            guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
+                  let display = content.displays.first(where: { $0.displayID == displayID })
+            else {
+                return nil
+            }
+            return (displayID, display, max(screen.backingScaleFactor, 1), CGDisplayBounds(displayID))
+        }
+        guard !requests.isEmpty else { return [:] }
+
+        return await withTaskGroup(of: (CGDirectDisplayID, DisplaySnapshot?).self) { group in
+            for request in requests {
+                group.addTask {
+                    let (displayID, display, scale, displayBounds) = request
+                    let filter = SCContentFilter(display: display, excludingWindows: [])
+
+                    let config = SCStreamConfiguration()
+                    config.width = max(Int(ceil(displayBounds.width * scale)), 1)
+                    config.height = max(Int(ceil(displayBounds.height * scale)), 1)
+                    config.capturesAudio = false
+                    config.showsCursor = false
+                    config.captureResolution = .best
+                    config.shouldBeOpaque = true
+
+                    do {
+                        let image = try await SCScreenshotManager.captureImage(
+                            contentFilter: filter,
+                            configuration: config
+                        )
+                        return (displayID, DisplaySnapshot(displayID: displayID, image: image))
+                    } catch {
+                        NSLog("capcap: Display snapshot failed for display \(displayID): \(error)")
+                        return (displayID, nil)
+                    }
+                }
+            }
+
+            var snapshots: [CGDirectDisplayID: DisplaySnapshot] = [:]
+            for await (displayID, snapshot) in group {
+                if let snapshot {
+                    snapshots[displayID] = snapshot
+                }
+            }
+            return snapshots
+        }
     }
 
     private static func captureWindowAsync(windowID: CGWindowID, pointSize: NSSize?) async throws -> NSImage? {

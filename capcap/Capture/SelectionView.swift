@@ -1,4 +1,5 @@
 import AppKit
+import CoreImage
 
 protocol SelectionViewDelegate: AnyObject {
     func selectionDidStart()
@@ -66,6 +67,16 @@ class SelectionView: NSView {
 
     /// Full-screen snapshot taken before overlays appear, preserving transient menus/popups.
     var backgroundSnapshot: NSImage?
+    var backgroundDisplaySnapshot: DisplaySnapshot? {
+        didSet {
+            if backgroundDisplaySnapshot != nil {
+                backgroundSnapshot = nil
+            }
+            needsDisplay = true
+        }
+    }
+
+    private static let backgroundCIContext = CIContext()
 
     // MARK: - Window Detection
 
@@ -448,7 +459,9 @@ class SelectionView: NSView {
         // Draw pre-captured screen snapshot as background so transient
         // menus/popups remain visible even after they dismiss.
         // Skip during scroll capture so live scrolling content shows through.
-        if let snapshot = backgroundSnapshot, !scrollCaptureActive {
+        if let snapshot = backgroundDisplaySnapshot, !scrollCaptureActive {
+            drawBackgroundDisplaySnapshot(snapshot, context: context)
+        } else if let snapshot = backgroundSnapshot, !scrollCaptureActive {
             snapshot.draw(in: bounds)
         }
 
@@ -517,6 +530,25 @@ class SelectionView: NSView {
         } else if state == .selected, let selectionSizeLabelOverride {
             SelectionView.drawSizeLabel(context: context, rect: rect, text: selectionSizeLabelOverride)
         }
+    }
+
+    private func drawBackgroundDisplaySnapshot(_ snapshot: DisplaySnapshot, context: CGContext) {
+        if let pixelBuffer = snapshot.pixelBuffer {
+            let signpost = PerformanceSignposts.begin("OverlayDrawPixelBuffer")
+            defer { PerformanceSignposts.end("OverlayDrawPixelBuffer", signpost) }
+
+            let image = CIImage(cvPixelBuffer: pixelBuffer)
+            let sourceRect = image.extent
+            guard !sourceRect.isEmpty else { return }
+
+            context.saveGState()
+            Self.backgroundCIContext.draw(image, in: bounds, from: sourceRect)
+            context.restoreGState()
+            return
+        }
+
+        guard let image = snapshot.cgImage() else { return }
+        NSImage(cgImage: image, size: bounds.size).draw(in: bounds)
     }
 
     private func drawHandles(context: CGContext, rect: NSRect) {

@@ -72,7 +72,7 @@ class OverlayWindowController {
     private var activeEditorContext: ActiveEditorContext?
     private var currentEditHistoryDraft: CurrentEditHistoryDraft?
     private let windowDetector = WindowDetector()
-    private var screenSnapshots: [CGDirectDisplayID: CGImage] = [:]
+    private var screenSnapshots: [CGDirectDisplayID: DisplaySnapshot] = [:]
     private let onComplete: (NSImage?) -> Void
     private let onRequestFocusReturn: (() -> Void)?
     private let onRecordingSelection: ((NSRect, NSScreen) -> Void)?
@@ -209,6 +209,7 @@ class OverlayWindowController {
         guard !presentationScheduled else { return }
         presentationScheduled = true
 
+        PerformanceSignposts.event("OverlayActivate")
         prepareScreenContext()
 
         if Self.isRunningEventTrackingMode {
@@ -222,35 +223,30 @@ class OverlayWindowController {
     }
 
     private func prepareScreenContext() {
+        let signpost = PerformanceSignposts.begin("OverlayPrepareScreenContext")
+        defer { PerformanceSignposts.end("OverlayPrepareScreenContext", signpost) }
+
         // Snapshot visible windows before our overlays appear
         windowDetector.refresh()
 
         // Pre-capture all screen content before overlay panels appear,
         // so transient menus and popups are preserved in the snapshot.
-        // Use CGWindowListCreateImage with .bestResolution so the image
-        // matches the display's effective resolution (not the native panel
-        // resolution), avoiding a visible scale shift on scaled displays.
-        screenSnapshots.removeAll()
-        for screen in NSScreen.screens {
-            if let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID {
-                let displayBounds = CGDisplayBounds(displayID)
-                if let image = CGWindowListCreateImage(
-                    displayBounds,
-                    .optionOnScreenOnly,
-                    kCGNullWindowID,
-                    .bestResolution
-                ) {
-                    screenSnapshots[displayID] = image
-                }
-            }
-        }
+        let orderedScreens = screensPrioritizingMouseLocation()
+        let fallbackScreens = orderedScreens.first.map { [$0] } ?? []
+        screenSnapshots = ScreenCapturer.captureDisplaySnapshots(
+            for: orderedScreens,
+            fallbackScreens: fallbackScreens
+        )
     }
 
     private func presentOverlay() {
         guard windows.isEmpty else { return }
+        let signpost = PerformanceSignposts.begin("OverlayPresent")
+        defer { PerformanceSignposts.end("OverlayPresent", signpost) }
+
         // Create all overlay windows and pre-render their content before
         // showing any of them, so there is no visible flash or zoom.
-        for screen in NSScreen.screens {
+        for screen in screensPrioritizingMouseLocation() {
             let window = OverlayPanel(
                 contentRect: screen.frame,
                 styleMask: [.borderless, .nonactivatingPanel],
@@ -271,7 +267,7 @@ class OverlayWindowController {
             selectionView.windowDetector = windowDetector
             if let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
                let snapshot = screenSnapshots[displayID] {
-                selectionView.backgroundSnapshot = NSImage(cgImage: snapshot, size: screen.frame.size)
+                selectionView.backgroundDisplaySnapshot = snapshot
             }
             window.contentView = selectionView
 
@@ -290,10 +286,13 @@ class OverlayWindowController {
         }
         windows.first?.makeKey()
         CATransaction.commit()
+        PerformanceSignposts.event("OverlayVisible")
+        captureMissingScreenSnapshotsAfterPresentation()
 
         if presetImage == nil, suspendedDraft == nil {
             for case let selectionView as SelectionView in windows.compactMap(\.contentView) {
                 selectionView.refreshHoverAtCurrentMouseLocation()
+                selectionView.displayIfNeeded()
             }
         }
 
@@ -511,6 +510,65 @@ class OverlayWindowController {
         return NSScreen.screens.first(where: { $0.frame.contains(cursorPoint) })
     }
 
+    private func screensPrioritizingMouseLocation() -> [NSScreen] {
+        let screens = NSScreen.screens
+        guard let mouseScreen = screenForMouseLocation() else { return screens }
+        return [mouseScreen] + screens.filter { $0 != mouseScreen }
+    }
+
+    private func captureMissingScreenSnapshotsAfterPresentation() {
+        let missingScreens = NSScreen.screens.filter { screen in
+            guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else {
+                return false
+            }
+            return screenSnapshots[displayID] == nil
+        }
+        guard !missingScreens.isEmpty else { return }
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let snapshots = ScreenCapturer.captureDisplaySnapshotsWithScreenshotManager(for: missingScreens)
+            DispatchQueue.main.async {
+                self?.installDisplaySnapshots(snapshots)
+            }
+        }
+    }
+
+    private func installDisplaySnapshots(_ snapshots: [CGDirectDisplayID: DisplaySnapshot]) {
+        guard !snapshots.isEmpty, !windows.isEmpty else { return }
+        screenSnapshots.merge(snapshots) { current, _ in current }
+
+        for window in windows {
+            guard let screen = window.screen,
+                  let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
+                  let snapshot = screenSnapshots[displayID],
+                  let selectionView = window.contentView as? SelectionView
+            else {
+                continue
+            }
+            selectionView.backgroundDisplaySnapshot = snapshot
+            selectionView.needsDisplay = true
+        }
+    }
+
+    private func snapshotImage(for screen: NSScreen) -> CGImage? {
+        let signpost = PerformanceSignposts.begin("OverlayResolvePreSnapshot")
+        defer { PerformanceSignposts.end("OverlayResolvePreSnapshot", signpost) }
+
+        guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else {
+            return nil
+        }
+        if let snapshot = screenSnapshots[displayID] {
+            return snapshot.cgImage()
+        }
+
+        let snapshots = ScreenCapturer.captureDisplaySnapshotsWithScreenshotManager(for: [screen])
+        if let snapshot = snapshots[displayID] {
+            screenSnapshots[displayID] = snapshot
+            return snapshot.cgImage()
+        }
+        return nil
+    }
+
     private static func scaleLabelText(imageSize: NSSize, displaySize: NSSize) -> String? {
         guard imageSize.width > 0, imageSize.height > 0,
               displaySize.width > 0, displaySize.height > 0
@@ -629,10 +687,18 @@ class OverlayWindowController {
         if let m = rightMouseGlobalMonitor { NSEvent.removeMonitor(m); rightMouseGlobalMonitor = nil }
 
         for window in windows {
+            if let selectionView = window.contentView as? SelectionView {
+                selectionView.backgroundDisplaySnapshot = nil
+                selectionView.backgroundSnapshot = nil
+                selectionView.delegate = nil
+                selectionView.windowDetector = nil
+            }
+            window.contentView = nil
             window.orderOut(nil)
+            window.close()
         }
-        windows.removeAll()
-        screenSnapshots.removeAll()
+        windows.removeAll(keepingCapacity: false)
+        screenSnapshots.removeAll(keepingCapacity: false)
         activeSelectionView = nil
         activeScreen = nil
         activeEditorContext = nil
@@ -673,6 +739,7 @@ extension OverlayWindowController: SelectionViewDelegate {
     }
 
     func selectionDidComplete(rect: NSRect, inView view: NSView, isWindowSelection: Bool, windowID: CGWindowID?) {
+        PerformanceSignposts.event("SelectionDidComplete")
         guard let window = view.window, let screen = window.screen else {
             cancel()
             return
@@ -708,8 +775,7 @@ extension OverlayWindowController: SelectionViewDelegate {
             }
 
             // First time selection complete — show editor
-            let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
-            let preSnapshot = displayID.flatMap { screenSnapshots[$0] }
+            let preSnapshot = snapshotImage(for: screen)
             let windowBaseImage = imageForWindowSelection(
                 isWindowSelection: isWindowSelection,
                 windowID: windowID,
@@ -798,6 +864,9 @@ extension OverlayWindowController: SelectionViewDelegate {
         windowBaseImage: NSImage?,
         isWindowCapture: Bool
     ) {
+        let signpost = PerformanceSignposts.begin("OverlayShowEditor")
+        defer { PerformanceSignposts.end("OverlayShowEditor", signpost) }
+
         activeEditorContext = ActiveEditorContext(
             captureRect: captureRect,
             screen: screen,
