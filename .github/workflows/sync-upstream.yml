@@ -1,0 +1,39 @@
+name: Sync upstream
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub cron uses UTC. 13:00 UTC is 21:00 in Asia/Shanghai.
+    - cron: "0 13 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream
+        run: |
+          git remote add upstream https://github.com/realskyrin/capcap.git
+          git fetch upstream main
+          git merge --no-edit upstream/main
+
+      - name: Push changes
+        run: git push origin main
