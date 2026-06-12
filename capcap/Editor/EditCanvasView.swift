@@ -1746,6 +1746,9 @@ class EditCanvasView: NSView {
     // MARK: - Helpers
 
     func resolveBaseImageForEditing() -> NSImage? {
+        let signpost = PerformanceSignposts.begin("EditorResolveBaseImage")
+        defer { PerformanceSignposts.end("EditorResolveBaseImage", signpost) }
+
         if let previewImage {
             return previewImage
         }

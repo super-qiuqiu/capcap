@@ -299,6 +299,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func handleTrigger(fromShortcut: Bool = false) {
+        if fromShortcut {
+            PerformanceSignposts.event("ShortcutTriggerReceived")
+        } else {
+            PerformanceSignposts.event("MenuTriggerReceived")
+        }
         if recordingEngine != nil {
             stopRecordingAndSave()
             return
@@ -541,7 +546,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         applyHotkeyState()
     }
 
-    func startCapture(postCaptureAction: OverlayWindowController.PostCaptureAction = .edit) {
+    func startCapture(
+        postCaptureAction: OverlayWindowController.PostCaptureAction = .edit
+    ) {
+        PerformanceSignposts.event("StartCapture")
         guard overlayController == nil, recordingEngine == nil else { return }
         let focusRestorer = SourceAppFocusRestorer.captureFrontmostApplication()
         overlayController = OverlayWindowController(

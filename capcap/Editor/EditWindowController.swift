@@ -145,6 +145,9 @@ class EditWindowController {
     }
 
     func show() {
+        let signpost = PerformanceSignposts.begin("EditorShow")
+        defer { PerformanceSignposts.end("EditorShow", signpost) }
+
         guard let hostSelectionView else {
             onComplete(nil)
             requestFocusReturn()
@@ -1991,6 +1994,9 @@ class EditWindowController {
     }
 
     private func currentCompositeImage() -> NSImage? {
+        let signpost = PerformanceSignposts.begin("EditorCompositeImage")
+        defer { PerformanceSignposts.end("EditorCompositeImage", signpost) }
+
         var fallbackBaseImage: NSImage?
         if canvasView?.hasPreviewImage == true {
             fallbackBaseImage = nil

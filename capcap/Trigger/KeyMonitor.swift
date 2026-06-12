@@ -171,8 +171,10 @@ class KeyMonitor {
 
             if isDoubleTap {
                 if opt {
+                    PerformanceSignposts.event("EventTapCountdownDoubleCommand")
                     MainRunLoopScheduler.perform { [weak self] in self?.onCountdownTrigger() }
                 } else if isRegularDoubleTapEnabled {
+                    PerformanceSignposts.event("EventTapScreenshotDoubleCommand")
                     MainRunLoopScheduler.perform { [weak self] in self?.onTrigger() }
                 }
                 lastCommandPressTime = 0
@@ -196,12 +198,14 @@ class KeyMonitor {
 
         if let hotkey = HotkeyManager.shared.currentCountdownHotkey(),
            eventMatches(event, hotkey: hotkey) {
+            PerformanceSignposts.event("EventTapCountdownHotkey")
             MainRunLoopScheduler.perform { [weak self] in self?.onCountdownTrigger() }
             return true
         }
 
         if let hotkey = HotkeyManager.shared.currentHotkey(),
            eventMatches(event, hotkey: hotkey) {
+            PerformanceSignposts.event("EventTapScreenshotHotkey")
             MainRunLoopScheduler.perform { [weak self] in self?.onTrigger() }
             return true
         }
