@@ -232,11 +232,7 @@ class OverlayWindowController {
         // Pre-capture all screen content before overlay panels appear,
         // so transient menus and popups are preserved in the snapshot.
         let orderedScreens = screensPrioritizingMouseLocation()
-        let fallbackScreens = orderedScreens.first.map { [$0] } ?? []
-        screenSnapshots = ScreenCapturer.captureDisplaySnapshots(
-            for: orderedScreens,
-            fallbackScreens: fallbackScreens
-        )
+        screenSnapshots = ScreenCapturer.captureDisplaySnapshots(for: orderedScreens)
     }
 
     private func presentOverlay() {

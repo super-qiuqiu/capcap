@@ -3,30 +3,11 @@ import ScreenCaptureKit
 
 struct ScreenCapturer {
     static func captureDisplaySnapshots(
-        for screens: [NSScreen],
-        fallbackScreens: [NSScreen]
+        for screens: [NSScreen]
     ) -> [CGDirectDisplayID: DisplaySnapshot] {
         guard !screens.isEmpty else { return [:] }
 
-        var result = cachedDisplaySnapshots(for: screens)
-        let missingScreens = fallbackScreens.filter { screen in
-            guard let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else {
-                return false
-            }
-            return result[displayID] == nil
-        }
-        guard !missingScreens.isEmpty else { return result }
-
-        let fallback = captureDisplaySnapshotsWithScreenshotManager(for: missingScreens)
-        result.merge(fallback) { cached, _ in cached }
-        return result
-    }
-
-    static func cachedDisplaySnapshots(for screens: [NSScreen]) -> [CGDirectDisplayID: DisplaySnapshot] {
-        let frames = ScreenFrameCache.shared.snapshotFrames(for: screens)
-        return frames.mapValues { frame in
-            DisplaySnapshot(displayID: frame.displayID, pixelBuffer: frame.pixelBuffer)
-        }
+        return captureDisplaySnapshotsWithScreenshotManager(for: screens)
     }
 
     static func captureDisplaySnapshotsWithScreenshotManager(for screens: [NSScreen]) -> [CGDirectDisplayID: DisplaySnapshot] {

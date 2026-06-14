@@ -15,9 +15,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var countdownActive = false
     private var appInitialized = false
     private var suspendedEditDraft: OverlayWindowController.SuspendedEditDraft?
-    private var screenParametersObserver: NSObjectProtocol?
-    private var workspaceWakeObserver: NSObjectProtocol?
-    private var workspaceScreensWakeObserver: NSObjectProtocol?
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
@@ -29,10 +26,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             showStartupDialog()
         }
-    }
-
-    func applicationWillTerminate(_ notification: Notification) {
-        ScreenFrameCache.shared.stop()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -92,35 +85,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.applyHotkeyState()
         }
         applyHotkeyState()
-        startScreenFrameCache()
-    }
-
-    private func startScreenFrameCache() {
-        ScreenFrameCache.shared.start()
-
-        screenParametersObserver = NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil,
-            queue: .main
-        ) { _ in
-            ScreenFrameCache.shared.restart()
-        }
-
-        workspaceWakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didWakeNotification,
-            object: nil,
-            queue: .main
-        ) { _ in
-            ScreenFrameCache.shared.restart()
-        }
-
-        workspaceScreensWakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.screensDidWakeNotification,
-            object: nil,
-            queue: .main
-        ) { _ in
-            ScreenFrameCache.shared.restart()
-        }
     }
 
     private func applyHotkeyState() {
