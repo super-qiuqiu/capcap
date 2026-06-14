@@ -61,6 +61,7 @@ class SettingsView: NSView {
     private var launchAtLoginSwitch: NSSwitch!
     private var demoModeSwitch: NSSwitch!
     private var pinAcrossSpacesSwitch: NSSwitch!
+    private var doubleClickSelectionCopySwitch: NSSwitch!
 
     // Picker & slider
     private var langPicker: NSPopUpButton!
@@ -216,6 +217,8 @@ class SettingsView: NSView {
     private var demoModeSubtitleLabel: NSTextField!
     private var pinAcrossSpacesTitleLabel: NSTextField!
     private var pinAcrossSpacesSubtitleLabel: NSTextField!
+    private var doubleClickSelectionCopyTitleLabel: NSTextField!
+    private var doubleClickSelectionCopySubtitleLabel: NSTextField!
     private var langTitleLabel: NSTextField!
     private var historyCacheToggleTitleLabel: NSTextField!
     private var historyCacheToggleHintLabel: NSTextField?
@@ -637,6 +640,19 @@ class SettingsView: NSView {
         pinAcrossSpacesSwitch = pinAcrossSpaces.toggle
         togglesInner.addArrangedSubview(pinAcrossSpaces.row)
         pinAcrossSpaces.row.widthAnchor.constraint(equalTo: togglesInner.widthAnchor).isActive = true
+        togglesInner.addArrangedSubview(rowDivider())
+
+        let doubleClickSelectionCopy = makeToggleRow(
+            title: L10n.doubleClickSelectionCopy,
+            subtitle: L10n.doubleClickSelectionCopyHint,
+            isOn: Defaults.doubleClickSelectionCopyEnabled,
+            action: #selector(doubleClickSelectionCopyToggled(_:))
+        )
+        doubleClickSelectionCopyTitleLabel = doubleClickSelectionCopy.title
+        doubleClickSelectionCopySubtitleLabel = doubleClickSelectionCopy.subtitle
+        doubleClickSelectionCopySwitch = doubleClickSelectionCopy.toggle
+        togglesInner.addArrangedSubview(doubleClickSelectionCopy.row)
+        doubleClickSelectionCopy.row.widthAnchor.constraint(equalTo: togglesInner.widthAnchor).isActive = true
 
         stack.addArrangedSubview(togglesCard)
         togglesCard.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
@@ -2458,6 +2474,10 @@ class SettingsView: NSView {
         Defaults.pinAcrossSpaces = sender.state == .on
     }
 
+    @objc private func doubleClickSelectionCopyToggled(_ sender: NSSwitch) {
+        Defaults.doubleClickSelectionCopyEnabled = sender.state == .on
+    }
+
     @objc private func menuBarSwitchToggled(_ sender: NSSwitch) {
         let visible = sender.state == .on
         Defaults.showMenuBar = visible
@@ -4112,6 +4132,9 @@ class SettingsView: NSView {
         pinAcrossSpacesTitleLabel?.stringValue = L10n.pinAcrossSpaces
         pinAcrossSpacesSubtitleLabel?.stringValue = L10n.pinAcrossSpacesHint
         pinAcrossSpacesSwitch?.state = Defaults.pinAcrossSpaces ? .on : .off
+        doubleClickSelectionCopyTitleLabel?.stringValue = L10n.doubleClickSelectionCopy
+        doubleClickSelectionCopySubtitleLabel?.stringValue = L10n.doubleClickSelectionCopyHint
+        doubleClickSelectionCopySwitch?.state = Defaults.doubleClickSelectionCopyEnabled ? .on : .off
         langTitleLabel?.stringValue = L10n.languageHeader
         filenameRuleCard?.refreshLocalization()
         savePathTitleLabel?.stringValue = L10n.savePathTitle

@@ -14,6 +14,8 @@
 "demoModeHint" = "画面収録ソフトが選択範囲のオーバーレイとエディタを録画できるようにします";
 "pinAcrossSpaces" = "ピン画像をすべてのデスクトップに表示";
 "pinAcrossSpacesHint" = "オンにすると新しいピン画像がすべてのデスクトップとフルスクリーン操作スペースに表示されます";
+"doubleClickSelectionCopy" = "選択範囲をダブルクリックしてコピー";
+"doubleClickSelectionCopyHint" = "スクリーンショット範囲を選択した後、その内側をダブルクリックするとすぐにコピーします";
 "historyCacheToggleLabel" = "スクリーンショットをキャッシュ";
 "historyCacheToggleHint" = "最近のスクリーンショット、取得した色、アップロード結果を保存し、メニューバーからすばやく再コピーできます";
 "historyCacheLabel" = "履歴キャッシュ数";

@@ -90,6 +90,8 @@ enum L10n {
     static var demoModeHint: String { s("demoModeHint") }
     static var pinAcrossSpaces: String { s("pinAcrossSpaces") }
     static var pinAcrossSpacesHint: String { s("pinAcrossSpacesHint") }
+    static var doubleClickSelectionCopy: String { s("doubleClickSelectionCopy") }
+    static var doubleClickSelectionCopyHint: String { s("doubleClickSelectionCopyHint") }
     static var historyCacheToggleLabel: String { s("historyCacheToggleLabel") }
     static var historyCacheToggleHint: String { s("historyCacheToggleHint") }
     static var historyCacheLabel: String { s("historyCacheLabel") }
@@ -1585,6 +1587,18 @@ struct Defaults {
     static var pinAcrossSpaces: Bool {
         get { defaults.bool(forKey: "pinAcrossSpaces") }
         set { defaults.set(newValue, forKey: "pinAcrossSpaces") }
+    }
+
+    static var doubleClickSelectionCopyEnabled: Bool {
+        get {
+            if defaults.object(forKey: "doubleClickSelectionCopyEnabled") == nil {
+                return true
+            }
+            return defaults.bool(forKey: "doubleClickSelectionCopyEnabled")
+        }
+        set {
+            defaults.set(newValue, forKey: "doubleClickSelectionCopyEnabled")
+        }
     }
 
     // Window-capture drop shadow. When enabled, single-window screenshots get

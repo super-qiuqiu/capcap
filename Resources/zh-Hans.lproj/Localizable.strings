@@ -14,6 +14,8 @@
 "demoModeHint" = "录屏软件可以录到选区遮罩与编辑器，仅影响外部录制";
 "pinAcrossSpaces" = "贴图跨桌面显示";
 "pinAcrossSpacesHint" = "开启后新贴图会出现在所有桌面与全屏空间";
+"doubleClickSelectionCopy" = "双击选区复制";
+"doubleClickSelectionCopyHint" = "选中截图区域后，在选区内双击即可立即复制到剪贴板";
 "historyCacheToggleLabel" = "缓存截图";
 "historyCacheToggleHint" = "保存最近截图、取色和上传结果，便于从菜单栏快速再次复制";
 "historyCacheLabel" = "历史缓存数量";

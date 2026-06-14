@@ -184,6 +184,9 @@ class EditCanvasView: NSView {
     /// Fired after the emoji tool stamps a sticker so the controller can clear
     /// the pending emoji without leaving the tool.
     var onEmojiStamped: (() -> Void)?
+    /// Fired for a double-click on empty canvas after annotation hit testing
+    /// has declined the event. Return true when the controller handled it.
+    var onEmptyCanvasDoubleClick: (() -> Bool)?
 
     private func notifySelectionChanged() {
         guard let cb = onAnnotationSelected else { return }
@@ -1052,6 +1055,14 @@ class EditCanvasView: NSView {
             )
             captureUndoForPending()
             NSCursor.closedHand.set()
+            return
+        }
+
+        if event.clickCount >= 2,
+           activeTool == .none,
+           activeTextField == nil,
+           !hasSelection,
+           onEmptyCanvasDoubleClick?() == true {
             return
         }
 

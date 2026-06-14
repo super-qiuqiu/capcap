@@ -738,6 +738,10 @@ extension OverlayWindowController: SelectionViewDelegate {
         suspendCurrentEditFromMask()
     }
 
+    func selectionRectDidDoubleClick(inView view: NSView) -> Bool {
+        editController?.confirmFromSelectionDoubleClick() ?? false
+    }
+
     func selectionDidComplete(rect: NSRect, inView view: NSView, isWindowSelection: Bool, windowID: CGWindowID?) {
         PerformanceSignposts.event("SelectionDidComplete")
         guard let window = view.window, let screen = window.screen else {

@@ -11,11 +11,13 @@ protocol SelectionViewDelegate: AnyObject {
     func selectionDidComplete(rect: NSRect, inView view: NSView, isWindowSelection: Bool, windowID: CGWindowID?)
     func selectionDidChange(rect: NSRect, inView view: NSView)
     func selectionMaskDidDoubleClick(inView view: NSView)
+    func selectionRectDidDoubleClick(inView view: NSView) -> Bool
 }
 
 extension SelectionViewDelegate {
     func selectionDidChange(rect: NSRect, inView view: NSView) {}
     func selectionMaskDidDoubleClick(inView view: NSView) {}
+    func selectionRectDidDoubleClick(inView view: NSView) -> Bool { false }
 }
 
 class SelectionView: NSView {
@@ -208,6 +210,11 @@ class SelectionView: NSView {
                 dragOriginalRect = rect
                 return
             }
+            if shouldConfirmFromSelectionDoubleClick(event: event, point: point, rect: rect),
+               delegate?.selectionRectDidDoubleClick(inView: self) == true {
+                dragAction = .none
+                return
+            }
             // Check inside selection for move
             if rect.contains(point) {
                 if annotationToolActive {
@@ -242,6 +249,15 @@ class SelectionView: NSView {
               let rect = selectionRect
         else { return false }
         return !rect.contains(point)
+    }
+
+    private func shouldConfirmFromSelectionDoubleClick(event: NSEvent, point: NSPoint, rect: NSRect) -> Bool {
+        guard event.clickCount >= 2,
+              state == .selected,
+              selectionLocked,
+              rect.contains(point)
+        else { return false }
+        return true
     }
 
     override func mouseDragged(with event: NSEvent) {

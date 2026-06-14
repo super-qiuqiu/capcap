@@ -185,6 +185,9 @@ class EditWindowController {
         canvas.onEmojiStamped = { [weak self] in
             self?.handleEmojiStamped()
         }
+        canvas.onEmptyCanvasDoubleClick = { [weak self] in
+            self?.confirmFromSelectionDoubleClick() ?? false
+        }
 
         let container = BeautifyContainerView(canvasView: canvas)
         container.autoresizingMask = []
@@ -1783,6 +1786,21 @@ class EditWindowController {
             return
         }
         confirm()
+    }
+
+    func confirmFromSelectionDoubleClick() -> Bool {
+        guard Defaults.doubleClickSelectionCopyEnabled,
+              activeTool == .none,
+              !isTextEditing,
+              !blocksHistoryNavigation,
+              overrideBaseImage == nil,
+              canvasView?.hasPreviewImage != true,
+              canvasView != nil
+        else {
+            return false
+        }
+        confirm()
+        return true
     }
 
     /// Save-to-file (⌘S) entry point — mirrors `confirmFromKeyboard`'s phased
