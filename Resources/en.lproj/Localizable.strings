@@ -82,6 +82,7 @@
 /* Save-to-file shortcut (editor save) */
 "fileSaveShortcutHeader" = "Save to File";
 "fileSaveShortcutHint" = "Pressed inside the editor to save the screenshot as a PNG in the configured screenshot folder. Defaults to ⌘S";
+"editorPinShortcutHeader" = "Pin to Screen";
 "previousHistoryImageShortcutHeader" = "Previous History Screenshot";
 "nextHistoryImageShortcutHeader" = "Next History Screenshot";
 
@@ -94,6 +95,7 @@
 "shortcutConflictClipboardTextPin" = "This key combination is already used by the Pin Clipboard Text shortcut. Please choose a different one";
 "shortcutConflictClipboard" = "This key combination is already used by the Copy to Clipboard shortcut. Please choose a different one";
 "shortcutConflictFileSave" = "This key combination is already used by the Save to File shortcut. Please choose a different one";
+"shortcutConflictEditorPin" = "This key combination is already used by the Pin to Screen shortcut. Please choose a different one";
 "shortcutConflictPreviousHistoryImage" = "This key combination is already used by the Previous History Screenshot shortcut. Please choose a different one";
 "shortcutConflictNextHistoryImage" = "This key combination is already used by the Next History Screenshot shortcut. Please choose a different one";
 "shortcutConflictSelectedImageEdit" = "This key combination is already used by the Edit Selected Image shortcut. Please choose a different one";

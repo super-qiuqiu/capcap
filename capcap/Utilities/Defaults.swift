@@ -178,6 +178,9 @@ enum L10n {
     static var fileSaveShortcutHeader: String { s("fileSaveShortcutHeader") }
     static var fileSaveShortcutHint: String { s("fileSaveShortcutHint") }
 
+    // Pin-to-screen shortcut (editor pin)
+    static var editorPinShortcutHeader: String { s("editorPinShortcutHeader") }
+
     // Shortcut conflict
     static var shortcutConflictTitle: String { s("shortcutConflictTitle") }
     static var shortcutConflictScreenshot: String { s("shortcutConflictScreenshot") }
@@ -187,6 +190,7 @@ enum L10n {
     static var shortcutConflictClipboardTextPin: String { s("shortcutConflictClipboardTextPin") }
     static var shortcutConflictClipboard: String { s("shortcutConflictClipboard") }
     static var shortcutConflictFileSave: String { s("shortcutConflictFileSave") }
+    static var shortcutConflictEditorPin: String { s("shortcutConflictEditorPin") }
     static var shortcutConflictPreviousHistoryImage: String { s("shortcutConflictPreviousHistoryImage") }
     static var shortcutConflictNextHistoryImage: String { s("shortcutConflictNextHistoryImage") }
     static var shortcutConflictSelectedImageEdit: String { s("shortcutConflictSelectedImageEdit") }
@@ -754,6 +758,7 @@ struct Defaults {
         clearColorPickerHotkey()
         clearClipboardHotkey()
         clearFileSaveHotkey()
+        clearEditorPinHotkey()
         clearPreviousHistoryImageHotkey()
         clearNextHistoryImageHotkey()
     }
@@ -1212,6 +1217,28 @@ struct Defaults {
     static func clearFileSaveHotkey() {
         defaults.removeObject(forKey: "fileSaveHotkeyKeyCode")
         defaults.removeObject(forKey: "fileSaveHotkeyModifiers")
+    }
+
+    // Custom pin-to-screen hotkey used inside the editor overlay. When absent,
+    // defaults to bare P. Matched locally against keyDown events.
+
+    static var editorPinHotkeyKeyCode: Int {
+        get { defaults.integer(forKey: "editorPinHotkeyKeyCode") }
+        set { defaults.set(newValue, forKey: "editorPinHotkeyKeyCode") }
+    }
+
+    static var editorPinHotkeyModifiers: Int {
+        get { defaults.integer(forKey: "editorPinHotkeyModifiers") }
+        set { defaults.set(newValue, forKey: "editorPinHotkeyModifiers") }
+    }
+
+    static var hasCustomEditorPinHotkey: Bool {
+        defaults.object(forKey: "editorPinHotkeyKeyCode") != nil
+    }
+
+    static func clearEditorPinHotkey() {
+        defaults.removeObject(forKey: "editorPinHotkeyKeyCode")
+        defaults.removeObject(forKey: "editorPinHotkeyModifiers")
     }
 
     // History navigation hotkeys used inside the editor overlay. Defaults are

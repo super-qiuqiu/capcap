@@ -750,6 +750,28 @@ final class HotkeyManager {
         return matches(event: event, keyCode: kc, modifiers: m)
     }
 
+    /// Returns (keyCode, carbonModifiers) for the editor pin-to-screen hotkey.
+    /// Falls back to bare P when the user hasn't bound a custom one.
+    func currentEditorPinHotkey() -> (keyCode: UInt32, modifiers: UInt32) {
+        if Defaults.hasCustomEditorPinHotkey {
+            return (UInt32(Defaults.editorPinHotkeyKeyCode),
+                    UInt32(Defaults.editorPinHotkeyModifiers))
+        }
+        return (UInt32(kVK_ANSI_P), 0)
+    }
+
+    /// Display string for the editor pin-to-screen hotkey.
+    static func currentEditorPinDisplayString() -> String {
+        let (kc, mods) = HotkeyManager.shared.currentEditorPinHotkey()
+        return modifierString(mods) + keyString(kc)
+    }
+
+    /// Returns true when the given keyDown event matches the editor pin hotkey.
+    static func eventMatchesEditorPinHotkey(_ event: NSEvent) -> Bool {
+        let (kc, m) = HotkeyManager.shared.currentEditorPinHotkey()
+        return matches(event: event, keyCode: kc, modifiers: m)
+    }
+
     func currentPreviousHistoryImageHotkey() -> (keyCode: UInt32, modifiers: UInt32) {
         if Defaults.hasCustomPreviousHistoryImageHotkey {
             return (UInt32(Defaults.previousHistoryImageHotkeyKeyCode),
@@ -816,6 +838,7 @@ final class HotkeyManager {
         case colorPicker
         case clipboard
         case fileSave
+        case editorPin
         case previousHistoryImage
         case nextHistoryImage
     }
@@ -976,6 +999,18 @@ final class HotkeyManager {
             let (kc, m) = currentFileSaveHotkey()
             if kc == keyCode, m == modifiers {
                 return L10n.shortcutConflictFileSave
+            }
+        }
+        if slot != .editorPin {
+            let (kc, m) = currentEditorPinHotkey()
+            if kc == keyCode {
+                if m == modifiers {
+                    return L10n.shortcutConflictEditorPin
+                }
+                if slot == .screenshot, modifiers & UInt32(optionKey) == 0,
+                   m == modifiers | UInt32(optionKey) {
+                    return L10n.shortcutConflictEditorPin
+                }
             }
         }
         if slot != .previousHistoryImage {

@@ -156,7 +156,7 @@ extension ToolbarItemID {
         case .ellipse:   return "O"
         case .line:      return "L"
         case .arrow:     return "A"
-        case .pin:       return "P"
+        case .pin:       return HotkeyManager.currentEditorPinDisplayString()
         case .pen:       return "D"
         case .marker:    return "H"
         case .mosaic:    return "M"

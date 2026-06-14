@@ -188,6 +188,13 @@ class SettingsView: NSView {
     private var fileSaveShortcutRestoreButton: NSButton!
     private var fileSaveShortcutRecordingMonitor: Any?
 
+    // Pin-to-screen shortcut card (editor pin, default P)
+    private var editorPinShortcutTitleLabel: NSTextField!
+    private var editorPinShortcutField: NSTextField!
+    private var editorPinShortcutSetButton: NSButton!
+    private var editorPinShortcutRestoreButton: NSButton!
+    private var editorPinShortcutRecordingMonitor: Any?
+
     // History navigation shortcut cards
     private var previousHistoryImageShortcutTitleLabel: NSTextField!
     private var previousHistoryImageShortcutField: NSTextField!
@@ -331,6 +338,7 @@ class SettingsView: NSView {
         cancelImageMergeShortcutRecording()
         cancelClipboardShortcutRecording()
         cancelFileSaveShortcutRecording()
+        cancelEditorPinShortcutRecording()
         cancelPreviousHistoryImageShortcutRecording()
         cancelNextHistoryImageShortcutRecording()
         NotificationCenter.default.removeObserver(self)
@@ -409,6 +417,7 @@ class SettingsView: NSView {
         refreshImageMergeShortcutDisplay()
         refreshClipboardShortcutDisplay()
         refreshFileSaveShortcutDisplay()
+        refreshEditorPinShortcutDisplay()
         refreshPreviousHistoryImageShortcutDisplay()
         refreshNextHistoryImageShortcutDisplay()
     }
@@ -830,6 +839,19 @@ class SettingsView: NSView {
         fileSaveShortcutRestoreButton = fileSaveShortcut.restoreButton
         stack.addArrangedSubview(fileSaveShortcut.card)
         fileSaveShortcut.card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+
+        // Pin-to-screen shortcut card (editor pin, default P)
+        let editorPinShortcut = buildShortcutCard(
+            title: L10n.editorPinShortcutHeader,
+            setAction: #selector(editorPinShortcutSetClicked),
+            restoreAction: #selector(editorPinShortcutRestoreClicked)
+        )
+        editorPinShortcutTitleLabel = editorPinShortcut.title
+        editorPinShortcutField = editorPinShortcut.field
+        editorPinShortcutSetButton = editorPinShortcut.setButton
+        editorPinShortcutRestoreButton = editorPinShortcut.restoreButton
+        stack.addArrangedSubview(editorPinShortcut.card)
+        editorPinShortcut.card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
 
         let previousHistoryImageShortcut = buildShortcutCard(
             title: L10n.previousHistoryImageShortcutHeader,
@@ -2618,6 +2640,9 @@ class SettingsView: NSView {
         if slot != .fileSave, fileSaveShortcutRecordingMonitor != nil {
             cancelFileSaveShortcutRecording()
         }
+        if slot != .editorPin, editorPinShortcutRecordingMonitor != nil {
+            cancelEditorPinShortcutRecording()
+        }
         if slot != .previousHistoryImage, previousHistoryImageShortcutRecordingMonitor != nil {
             cancelPreviousHistoryImageShortcutRecording()
         }
@@ -3929,6 +3954,85 @@ class SettingsView: NSView {
         fileSaveShortcutRestoreButton?.isHidden = !Defaults.hasCustomFileSaveHotkey
     }
 
+    @objc private func editorPinShortcutSetClicked() {
+        if editorPinShortcutRecordingMonitor != nil {
+            cancelEditorPinShortcutRecording()
+            return
+        }
+        cancelShortcutRecordings(except: .editorPin)
+        HotkeyManager.shared.beginRecording()
+        editorPinShortcutSetButton.title = L10n.shortcutCancel
+        editorPinShortcutField.stringValue = L10n.shortcutWaiting
+        editorPinShortcutRestoreButton.isHidden = true
+
+        editorPinShortcutRecordingMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self else { return event }
+            let modifiers = event.modifierFlags
+            let isEscape = event.keyCode == UInt16(kVK_Escape)
+            let activeModifierMask: NSEvent.ModifierFlags = [.command, .shift, .option, .control]
+            let pressedModifiers = modifiers.intersection(activeModifierMask)
+
+            if isEscape && pressedModifiers.isEmpty {
+                self.cancelEditorPinShortcutRecording()
+                return nil
+            }
+
+            var carbonMods: UInt32 = 0
+            if modifiers.contains(.command) { carbonMods |= UInt32(cmdKey) }
+            if modifiers.contains(.shift)   { carbonMods |= UInt32(shiftKey) }
+            if modifiers.contains(.option)  { carbonMods |= UInt32(optionKey) }
+            if modifiers.contains(.control) { carbonMods |= UInt32(controlKey) }
+            let keyCode = UInt32(event.keyCode)
+
+            if let conflict = HotkeyManager.shared.hotkeyConflictMessage(
+                forKeyCode: keyCode, modifiers: carbonMods, assigningTo: .editorPin) {
+                self.cancelEditorPinShortcutRecording()
+                self.presentHotkeyConflictAlert(conflict)
+                return nil
+            }
+
+            Defaults.editorPinHotkeyKeyCode = Int(keyCode)
+            Defaults.editorPinHotkeyModifiers = Int(carbonMods)
+            NotificationCenter.default.post(name: .hotkeyDidChange, object: nil)
+            self.finishEditorPinShortcutRecording()
+            return nil
+        }
+    }
+
+    @objc private func editorPinShortcutRestoreClicked() {
+        if editorPinShortcutRecordingMonitor != nil {
+            cancelEditorPinShortcutRecording()
+        }
+        Defaults.clearEditorPinHotkey()
+        NotificationCenter.default.post(name: .hotkeyDidChange, object: nil)
+        refreshEditorPinShortcutDisplay()
+    }
+
+    private func finishEditorPinShortcutRecording() {
+        if let m = editorPinShortcutRecordingMonitor {
+            NSEvent.removeMonitor(m)
+            editorPinShortcutRecordingMonitor = nil
+        }
+        HotkeyManager.shared.endRecording()
+        refreshEditorPinShortcutDisplay()
+    }
+
+    func cancelEditorPinShortcutRecording() {
+        guard editorPinShortcutRecordingMonitor != nil else { return }
+        if let m = editorPinShortcutRecordingMonitor {
+            NSEvent.removeMonitor(m)
+            editorPinShortcutRecordingMonitor = nil
+        }
+        HotkeyManager.shared.endRecording()
+        refreshEditorPinShortcutDisplay()
+    }
+
+    private func refreshEditorPinShortcutDisplay() {
+        editorPinShortcutSetButton?.title = L10n.shortcutSet
+        editorPinShortcutField?.stringValue = HotkeyManager.currentEditorPinDisplayString()
+        editorPinShortcutRestoreButton?.isHidden = !Defaults.hasCustomEditorPinHotkey
+    }
+
     @objc private func previousHistoryImageShortcutSetClicked() {
         if previousHistoryImageShortcutRecordingMonitor != nil {
             cancelPreviousHistoryImageShortcutRecording()
@@ -4099,6 +4203,7 @@ class SettingsView: NSView {
         cancelImageMergeShortcutRecording()
         cancelClipboardShortcutRecording()
         cancelFileSaveShortcutRecording()
+        cancelEditorPinShortcutRecording()
         cancelPreviousHistoryImageShortcutRecording()
         cancelNextHistoryImageShortcutRecording()
 
@@ -4119,6 +4224,7 @@ class SettingsView: NSView {
         refreshImageMergeShortcutDisplay()
         refreshClipboardShortcutDisplay()
         refreshFileSaveShortcutDisplay()
+        refreshEditorPinShortcutDisplay()
         refreshPreviousHistoryImageShortcutDisplay()
         refreshNextHistoryImageShortcutDisplay()
     }
@@ -4195,6 +4301,8 @@ class SettingsView: NSView {
         clipboardShortcutRestoreButton?.toolTip = L10n.shortcutRestore
         fileSaveShortcutTitleLabel?.stringValue = L10n.fileSaveShortcutHeader
         fileSaveShortcutRestoreButton?.toolTip = L10n.shortcutRestore
+        editorPinShortcutTitleLabel?.stringValue = L10n.editorPinShortcutHeader
+        editorPinShortcutRestoreButton?.toolTip = L10n.shortcutRestore
         previousHistoryImageShortcutTitleLabel?.stringValue = L10n.previousHistoryImageShortcutHeader
         previousHistoryImageShortcutRestoreButton?.toolTip = L10n.shortcutRestore
         nextHistoryImageShortcutTitleLabel?.stringValue = L10n.nextHistoryImageShortcutHeader
@@ -4232,6 +4340,7 @@ class SettingsView: NSView {
         refreshImageMergeShortcutDisplay()
         refreshClipboardShortcutDisplay()
         refreshFileSaveShortcutDisplay()
+        refreshEditorPinShortcutDisplay()
         refreshPreviousHistoryImageShortcutDisplay()
         refreshNextHistoryImageShortcutDisplay()
         refreshBottomAction()

@@ -62,6 +62,7 @@ class EditWindowController {
     /// Key monitor while capcap is deactivated for scroll capture, so any key
     /// stops scrolling and moves on to crop mode.
     private var scrollCaptureKeyMonitor: Any?
+    private var hotkeyChangeObserver: NSObjectProtocol?
 
     // Crop mode state — shown between scroll capture and the editor so the
     // user can trim any content auto-scroll over-shot.
@@ -144,6 +145,10 @@ class EditWindowController {
         self.pickedColorSwatch = Self.color(fromHex: Defaults.lastPickedColorHex)
     }
 
+    deinit {
+        removeHotkeyChangeObserver()
+    }
+
     func show() {
         let signpost = PerformanceSignposts.begin("EditorShow")
         defer { PerformanceSignposts.end("EditorShow", signpost) }
@@ -213,6 +218,7 @@ class EditWindowController {
         self.selectionChromeOverlay = overlay
 
         showToolbar()
+        observeHotkeyChanges()
         updateHistoryButtons(canUndo: canvas.canUndo, canRedo: canvas.canRedo)
         bringEditorToFront()
     }
@@ -247,6 +253,25 @@ class EditWindowController {
         if overrideBaseImage != nil || onRecordingSelection == nil {
             toolbars.forEach { $0.setScrollCaptureEnabled(false) }
             toolbars.forEach { $0.setRecordingEnabled(false) }
+        }
+    }
+
+    private func observeHotkeyChanges() {
+        removeHotkeyChangeObserver()
+        hotkeyChangeObserver = NotificationCenter.default.addObserver(
+            forName: .hotkeyDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.toolbarView?.refreshHoverTips()
+            self?.sideToolbarView?.refreshHoverTips()
+        }
+    }
+
+    private func removeHotkeyChangeObserver() {
+        if let observer = hotkeyChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            hotkeyChangeObserver = nil
         }
     }
 
@@ -1913,6 +1938,7 @@ class EditWindowController {
         scrollPreviewWindow = nil
         scrollCaptureHintWindow?.dismiss()
         scrollCaptureHintWindow = nil
+        removeHotkeyChangeObserver()
         hostSelectionView?.window?.ignoresMouseEvents = false
         canvasScrollView?.removeFromSuperview()
         canvasScrollView = nil
@@ -2240,6 +2266,11 @@ private enum EditorKeyboardShortcut {
     case close
 
     init?(event: NSEvent) {
+        if HotkeyManager.eventMatchesEditorPinHotkey(event) {
+            self = .pin
+            return
+        }
+
         let blockedModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         guard modifiers.intersection(blockedModifiers).isEmpty else { return nil }
@@ -2260,7 +2291,6 @@ private enum EditorKeyboardShortcut {
         case "f": self = .fill
         case "t": self = .tool(.text)
         case "n": self = .tool(.numbered)
-        case "p": self = .pin
         case "x": self = .close
         default: return nil
         }
@@ -2433,6 +2463,16 @@ class ToolbarView: NSView {
         setEnabled(enabled, for: .record)
     }
     var scrollCaptureButtonFrame: NSRect? { frame(for: .scrollCapture) }
+
+    func refreshHoverTips() {
+        for (id, view) in buttons {
+            if let button = view as? ToolButton {
+                button.hoverTip = id.tooltip
+            } else if let handle = view as? MoveSelectionDragHandle {
+                handle.hoverTip = id.tooltip
+            }
+        }
+    }
 
     private func setupButtons() {
         let size = Self.buttonSize

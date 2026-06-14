@@ -82,6 +82,7 @@
 /* Save-to-file shortcut (editor save) */
 "fileSaveShortcutHeader" = "保存到文件";
 "fileSaveShortcutHint" = "在编辑器内按下后，把截图保存为 PNG 到设置的截图保存路径。默认 ⌘S";
+"editorPinShortcutHeader" = "钉在屏幕";
 "previousHistoryImageShortcutHeader" = "上一张历史截图";
 "nextHistoryImageShortcutHeader" = "下一张历史截图";
 
@@ -94,6 +95,7 @@
 "shortcutConflictClipboardTextPin" = "该按键组合已被钉起剪贴板文本快捷键占用，请换一个";
 "shortcutConflictClipboard" = "该按键组合已被复制到剪贴板快捷键占用，请换一个";
 "shortcutConflictFileSave" = "该按键组合已被保存到文件快捷键占用，请换一个";
+"shortcutConflictEditorPin" = "该按键组合已被钉在屏幕快捷键占用，请换一个";
 "shortcutConflictPreviousHistoryImage" = "该按键组合已被上一张历史截图快捷键占用，请换一个";
 "shortcutConflictNextHistoryImage" = "该按键组合已被下一张历史截图快捷键占用，请换一个";
 "shortcutConflictSelectedImageEdit" = "该按键组合已被编辑选中图片快捷键占用，请换一个";
