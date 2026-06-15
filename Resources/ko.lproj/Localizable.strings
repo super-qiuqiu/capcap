@@ -27,6 +27,8 @@
 "windowShadowToggleHint" = "창을 선택해 캡처할 때 모서리를 둥글게 하고 macOS 스타일 그림자를 추가합니다";
 "windowShadowSizeLabel" = "그림자 크기";
 "windowShadowSizeHint" = "값이 클수록 그림자가 부드럽고 넓게 퍼져 창이 더 높이 떠 보입니다";
+"settingsMosaicAutoDetectBarcodes" = "QR 코드 자동 감지";
+"settingsMosaicAutoDetectBarcodesHint" = "자동 감지에 QR 코드 및 바코드 포함";
 
 /* Screenshot shortcut */
 "shortcutHeader" = "스크린샷";
@@ -171,6 +173,11 @@
 "tipMarker" = "형광펜";
 "tipMosaic" = "모자이크";
 "mosaicGranularity" = "모자이크 입자 크기";
+"mosaicAutoDetect" = "자동 감지";
+"mosaicDetecting" = "감지 중";
+"mosaicNoRegionsDetected" = "텍스트 또는 QR 코드를 감지하지 못함";
+"mosaicDetectionFailed" = "감지 실패";
+"mosaicDetectedRegions" = "%d개 영역 감지됨";
 "tipEraser" = "지우개";
 "tipMagnifier" = "돋보기";
 "tipNumbered" = "번호";
@@ -503,3 +510,29 @@
 "savePathReveal" = "보기";
 "chooseRecordingSavePathTitle" = "녹화 저장 경로 선택";
 "chooseScreenshotSavePathTitle" = "스크린샷 저장 경로 선택";
+
+/* Size Presets */
+"presetMenuFreeForm" = "자유 선택";
+"presetMenuManage" = "프리셋 관리";
+"presetSettingsTitle" = "크기 프리셋";
+"presetSettingsAddButton" = "프리셋 추가";
+"presetLimitReached" = "프리셋 수가 한도에 도달함";
+"presetFormNameLabel" = "이름";
+"presetFormNamePlaceholder" = "프리셋 이름";
+"presetFormDefaultName" = "새 프리셋";
+"presetFormTypeLabel" = "유형";
+"presetFormFixedSize" = "고정 크기";
+"presetFormAspectRatio" = "종횡비";
+"presetFormWidthLabel" = "너비";
+"presetFormHeightLabel" = "높이";
+"presetFormRatioLabel" = "비율";
+"presetFormLockRatio" = "비율 고정";
+"presetFormPixelsUnit" = "px";
+"presetFormRatioSeparator" = "대";
+"presetFormCommonRatios" = "자주 쓰는 비율";
+"presetFormSaveButton" = "저장";
+"presetFormCancelButton" = "취소";
+"presetFormDeleteButton" = "삭제";
+"presetFormEditButton" = "편집";
+"presetFormWindowTitleAdd" = "프리셋 추가";
+"presetFormWindowTitleEdit" = "프리셋 편집";

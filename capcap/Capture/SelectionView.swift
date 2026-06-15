@@ -95,6 +95,24 @@ class SelectionView: NSView {
     private var hoverWindowFullRect: NSRect?
     private var hoverWindowID: CGWindowID?
 
+    /// Active size preset applied during selection.
+    var sizePreset: SizePreset? {
+        didSet { needsDisplay = true }
+    }
+
+    var canResizeCurrentSelection: Bool {
+        guard selectionInteractionEnabled else { return false }
+        if let constraint = sizePreset?.constraint {
+            switch constraint {
+            case .fixedSize:
+                return false
+            case .aspectRatio:
+                return true
+            }
+        }
+        return true
+    }
+
     /// Pending window selection — confirmed on mouseUp if no significant drag occurs.
     private var pendingWindowRect: NSRect?
     private var pendingWindowID: CGWindowID?
@@ -114,7 +132,10 @@ class SelectionView: NSView {
     var currentSelectionRect: NSRect? { selectionRect }
 
     func refreshHoverAtCurrentMouseLocation() {
-        guard state == .idle, !selectionLocked else { return }
+        guard state == .idle, !selectionLocked, sizePreset == nil else {
+            clearHover()
+            return
+        }
         updateWindowHover(screenPoint: NSEvent.mouseLocation)
     }
 
@@ -151,10 +172,12 @@ class SelectionView: NSView {
     /// (e.g. `SelectionChromeOverlay`) rather than the SelectionView's own
     /// mouse handling. Mirrors `mouseDragged`'s `.resize` branch.
     func resizeByExternalDrag(handle: HandlePosition, originalRect: NSRect, currentPoint: NSPoint) {
+        guard canResizeCurrentSelection else { return }
         let newRect = SelectionView.resizedRect(
             from: originalRect,
             handle: handle,
-            currentPoint: currentPoint
+            currentPoint: currentPoint,
+            constraint: sizePreset?.constraint
         )
         selectionRect = newRect
         state = .selected
@@ -186,7 +209,7 @@ class SelectionView: NSView {
 
         // On a highlighted window: defer confirmation until mouseUp.
         // If the user drags past the threshold, fall through to free-form drawing.
-        if state == .idle, let hoverRect = hoverWindowRect {
+        if state == .idle, sizePreset == nil, let hoverRect = hoverWindowRect {
             pendingWindowRect = hoverWindowFullRect ?? hoverRect
             pendingWindowID = hoverWindowID
             hoverWindowRect = nil
@@ -204,7 +227,7 @@ class SelectionView: NSView {
 
         if let rect = selectionRect, state == .selected {
             // Check control points first
-            if let handle = hitTestHandle(point: point, rect: rect) {
+            if canResizeCurrentSelection, let handle = hitTestHandle(point: point, rect: rect) {
                 dragAction = .resize(handle)
                 dragStart = point
                 dragOriginalRect = rect
@@ -278,11 +301,18 @@ class SelectionView: NSView {
                 pendingWindowID = nil
             }
             NSCursor.crosshair.set()
-            let x = min(selectionOrigin.x, point.x)
-            let y = min(selectionOrigin.y, point.y)
-            let width = abs(point.x - selectionOrigin.x)
-            let height = abs(point.y - selectionOrigin.y)
-            selectionRect = NSRect(x: x, y: y, width: width, height: height)
+
+            // Apply size constraint if active
+            if let constraint = sizePreset?.constraint {
+                selectionRect = applyConstraint(constraint, origin: selectionOrigin, currentPoint: point)
+            } else {
+                // Free-form selection
+                let x = min(selectionOrigin.x, point.x)
+                let y = min(selectionOrigin.y, point.y)
+                let width = abs(point.x - selectionOrigin.x)
+                let height = abs(point.y - selectionOrigin.y)
+                selectionRect = NSRect(x: x, y: y, width: width, height: height)
+            }
             needsDisplay = true
 
         case .move:
@@ -299,7 +329,13 @@ class SelectionView: NSView {
             needsDisplay = true
 
         case .resize(let handle):
-            let newRect = SelectionView.resizedRect(from: dragOriginalRect, handle: handle, currentPoint: point)
+            guard canResizeCurrentSelection else { return }
+            let newRect = SelectionView.resizedRect(
+                from: dragOriginalRect,
+                handle: handle,
+                currentPoint: point,
+                constraint: sizePreset?.constraint
+            )
             selectionRect = newRect
             delegate?.selectionDidChange(rect: newRect, inView: self)
             needsDisplay = true
@@ -361,7 +397,12 @@ class SelectionView: NSView {
 
         // In idle state, detect windows under cursor for hover highlight
         if state == .idle && !selectionLocked {
-            updateWindowHover(with: event)
+            if sizePreset == nil {
+                updateWindowHover(with: event)
+            } else {
+                clearHover()
+                NSCursor.crosshair.set()
+            }
             return
         }
 
@@ -377,7 +418,7 @@ class SelectionView: NSView {
         // When editor is active, only show resize cursors on handles;
         // don't override the cursor elsewhere (let editor/toolbar handle it)
         if selectionLocked {
-            if let handle = hitTestHandle(point: point, rect: rect) {
+            if canResizeCurrentSelection, let handle = hitTestHandle(point: point, rect: rect) {
                 SelectionView.setCursorForHandle(handle)
             } else {
                 NSCursor.arrow.set()
@@ -385,7 +426,7 @@ class SelectionView: NSView {
             return
         }
 
-        if let handle = hitTestHandle(point: point, rect: rect) {
+        if canResizeCurrentSelection, let handle = hitTestHandle(point: point, rect: rect) {
             SelectionView.setCursorForHandle(handle)
         } else if rect.contains(point) {
             if annotationToolActive {
@@ -415,6 +456,12 @@ class SelectionView: NSView {
     }
 
     private func updateWindowHover(screenPoint: NSPoint) {
+        guard sizePreset == nil else {
+            clearHover()
+            NSCursor.crosshair.set()
+            return
+        }
+
         guard let detector = windowDetector,
               let win = self.window,
               let screen = win.screen else {
@@ -539,10 +586,13 @@ class SelectionView: NSView {
         }
 
         if state == .selected && selectionInteractionEnabled {
-            // Draw 8 control handles
-            drawHandles(context: context, rect: rect)
-            // Draw size label
-            SelectionView.drawSizeLabel(context: context, rect: rect)
+            if canResizeCurrentSelection {
+                // Draw 8 control handles
+                drawHandles(context: context, rect: rect)
+            }
+            SelectionView.drawSizeLabel(context: context, rect: rect, text: sizeLabelText(for: rect))
+        } else if state == .drawing, sizePreset != nil {
+            SelectionView.drawSizeLabel(context: context, rect: rect, text: sizeLabelText(for: rect))
         } else if state == .selected, let selectionSizeLabelOverride {
             SelectionView.drawSizeLabel(context: context, rect: rect, text: selectionSizeLabelOverride)
         }
@@ -604,6 +654,21 @@ class SelectionView: NSView {
         text.draw(at: textOrigin, withAttributes: attrs)
     }
 
+    func sizeLabelText(for rect: NSRect) -> String {
+        SelectionView.sizeLabelText(for: rect, preset: sizePreset)
+    }
+
+    static func sizeLabelText(for rect: NSRect, preset: SizePreset?) -> String {
+        let dimensions = "\(Int(rect.width)) × \(Int(rect.height))"
+        guard let preset else { return dimensions }
+
+        let constraintName = preset.constraint.displayName
+        if preset.name == constraintName {
+            return "\(constraintName) · \(dimensions)"
+        }
+        return "\(preset.name) · \(constraintName) · \(dimensions)"
+    }
+
     // MARK: - Handle Positions
 
     static func handlePositions(for rect: NSRect) -> [NSPoint] {
@@ -644,7 +709,26 @@ class SelectionView: NSView {
 
     // MARK: - Resize Logic
 
-    static func resizedRect(from original: NSRect, handle: HandlePosition, currentPoint: NSPoint) -> NSRect {
+    static func resizedRect(
+        from original: NSRect,
+        handle: HandlePosition,
+        currentPoint: NSPoint,
+        constraint: SizeConstraint? = nil
+    ) -> NSRect {
+        if let constraint {
+            switch constraint {
+            case .fixedSize:
+                return original
+            case .aspectRatio(let width, let height):
+                return aspectRatioResizedRect(
+                    from: original,
+                    handle: handle,
+                    currentPoint: currentPoint,
+                    ratio: CGFloat(width) / CGFloat(height)
+                )
+            }
+        }
+
         var minX = original.minX
         var minY = original.minY
         var maxX = original.maxX
@@ -674,6 +758,137 @@ class SelectionView: NSView {
         }
 
         return NSRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+    }
+
+    private static func aspectRatioResizedRect(
+        from original: NSRect,
+        handle: HandlePosition,
+        currentPoint: NSPoint,
+        ratio: CGFloat
+    ) -> NSRect {
+        guard ratio > 0 else { return original }
+
+        let minimumSide: CGFloat = 5
+        func lockedSize(width: CGFloat, height: CGFloat) -> NSSize {
+            let proposedWidth = max(width, minimumSide)
+            let proposedHeight = max(height, minimumSide)
+            var finalWidth: CGFloat
+            var finalHeight: CGFloat
+
+            if proposedWidth / ratio > proposedHeight {
+                finalWidth = proposedWidth
+                finalHeight = proposedWidth / ratio
+            } else {
+                finalHeight = proposedHeight
+                finalWidth = proposedHeight * ratio
+            }
+
+            if finalWidth < minimumSide {
+                finalWidth = minimumSide
+                finalHeight = finalWidth / ratio
+            }
+            if finalHeight < minimumSide {
+                finalHeight = minimumSide
+                finalWidth = finalHeight * ratio
+            }
+            return NSSize(width: finalWidth, height: finalHeight)
+        }
+
+        switch handle {
+        case .topLeft:
+            let anchor = NSPoint(x: original.maxX, y: original.minY)
+            let size = lockedSize(width: anchor.x - currentPoint.x, height: currentPoint.y - anchor.y)
+            return NSRect(x: anchor.x - size.width, y: anchor.y, width: size.width, height: size.height)
+        case .topRight:
+            let anchor = NSPoint(x: original.minX, y: original.minY)
+            let size = lockedSize(width: currentPoint.x - anchor.x, height: currentPoint.y - anchor.y)
+            return NSRect(x: anchor.x, y: anchor.y, width: size.width, height: size.height)
+        case .bottomLeft:
+            let anchor = NSPoint(x: original.maxX, y: original.maxY)
+            let size = lockedSize(width: anchor.x - currentPoint.x, height: anchor.y - currentPoint.y)
+            return NSRect(x: anchor.x - size.width, y: anchor.y - size.height, width: size.width, height: size.height)
+        case .bottomRight:
+            let anchor = NSPoint(x: original.minX, y: original.maxY)
+            let size = lockedSize(width: currentPoint.x - anchor.x, height: anchor.y - currentPoint.y)
+            return NSRect(x: anchor.x, y: anchor.y - size.height, width: size.width, height: size.height)
+        case .topCenter:
+            let height = currentPoint.y - original.minY
+            let size = lockedSize(width: height * ratio, height: height)
+            return NSRect(x: original.midX - size.width / 2, y: original.minY, width: size.width, height: size.height)
+        case .bottomCenter:
+            let height = original.maxY - currentPoint.y
+            let size = lockedSize(width: height * ratio, height: height)
+            return NSRect(x: original.midX - size.width / 2, y: original.maxY - size.height, width: size.width, height: size.height)
+        case .leftCenter:
+            let width = original.maxX - currentPoint.x
+            let size = lockedSize(width: width, height: width / ratio)
+            return NSRect(x: original.maxX - size.width, y: original.midY - size.height / 2, width: size.width, height: size.height)
+        case .rightCenter:
+            let width = currentPoint.x - original.minX
+            let size = lockedSize(width: width, height: width / ratio)
+            return NSRect(x: original.minX, y: original.midY - size.height / 2, width: size.width, height: size.height)
+        }
+    }
+
+    // MARK: - Size Constraint Application
+
+    /// Apply a size constraint to the selection based on origin and current point
+    private func applyConstraint(_ constraint: SizeConstraint, origin: NSPoint, currentPoint: NSPoint) -> NSRect {
+        switch constraint {
+        case .fixedSize(let targetWidth, let targetHeight):
+            // Fixed size: snap to exact dimensions (scaled down if screen is smaller)
+            let targetSize = CGSize(width: CGFloat(targetWidth), height: CGFloat(targetHeight))
+            let maxSize = bounds.size
+            let scale = min(1.0, min(maxSize.width / targetSize.width, maxSize.height / targetSize.height))
+            let finalWidth = targetSize.width * scale
+            let finalHeight = targetSize.height * scale
+
+            // Position based on drag direction from origin
+            let proposedX = currentPoint.x >= origin.x ? origin.x : origin.x - finalWidth
+            let proposedY = currentPoint.y >= origin.y ? origin.y : origin.y - finalHeight
+            let x = min(max(0, proposedX), max(0, bounds.width - finalWidth))
+            let y = min(max(0, proposedY), max(0, bounds.height - finalHeight))
+
+            return NSRect(x: x, y: y, width: finalWidth, height: finalHeight)
+
+        case .aspectRatio(let ratioWidth, let ratioHeight):
+            // Aspect ratio: maintain ratio while user drags
+            let ratio = CGFloat(ratioWidth) / CGFloat(ratioHeight)
+            let deltaX = currentPoint.x - origin.x
+            let deltaY = currentPoint.y - origin.y
+
+            // Use the larger dimension to determine size
+            let width = abs(deltaX)
+            let height = abs(deltaY)
+
+            let finalWidth: CGFloat
+            let finalHeight: CGFloat
+
+            // Lock to aspect ratio based on the dominant drag direction.
+            if width / ratio > height {
+                finalWidth = width
+                finalHeight = width / ratio
+            } else {
+                finalHeight = height
+                finalWidth = height * ratio
+            }
+
+            let maxWidth = deltaX >= 0 ? bounds.maxX - origin.x : origin.x - bounds.minX
+            let maxHeight = deltaY >= 0 ? bounds.maxY - origin.y : origin.y - bounds.minY
+            let scale = min(
+                1,
+                maxWidth > 0 ? maxWidth / max(finalWidth, 1) : 0,
+                maxHeight > 0 ? maxHeight / max(finalHeight, 1) : 0
+            )
+            let constrainedWidth = finalWidth * scale
+            let constrainedHeight = finalHeight * scale
+
+            // Position based on drag direction.
+            let x = deltaX >= 0 ? origin.x : origin.x - constrainedWidth
+            let y = deltaY >= 0 ? origin.y : origin.y - constrainedHeight
+
+            return NSRect(x: x, y: y, width: constrainedWidth, height: constrainedHeight)
+        }
     }
 
     // MARK: - Cursor

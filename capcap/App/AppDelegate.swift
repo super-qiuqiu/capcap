@@ -68,7 +68,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onRecord: { [weak self] in self?.handleRecordingTrigger() },
             onMergeImages: { [weak self] in self?.handleImageMergeMenuTrigger() },
             onColorPicker: { [weak self] in self?.handleColorPickerTrigger() },
-            onOpenSettings: { [weak self] in self?.openSettings() }
+            onOpenSettings: { [weak self] in self?.openSettings() },
+            onOpenPresetSettings: { [weak self] in self?.openSettings(tab: .presets) }
         )
         statusBarController.setMenuBarVisible(Defaults.showMenuBar)
 
@@ -515,9 +516,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     ) {
         PerformanceSignposts.event("StartCapture")
         guard overlayController == nil, recordingEngine == nil else { return }
+
+        // Look up active preset if any
+        let preset = Defaults.activeSizePreset
+
         let focusRestorer = SourceAppFocusRestorer.captureFrontmostApplication()
         overlayController = OverlayWindowController(
             postCaptureAction: postCaptureAction,
+            sizePreset: preset,
             onRecordingSelection: { [weak self] rect, screen in
                 self?.beginRecording(rect: rect, screen: screen)
             },
@@ -832,8 +838,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func openSettings() {
-        configuredSettingsController().showAsSettings()
+    private func openSettings(tab: SettingsTab? = nil) {
+        configuredSettingsController().showAsSettings(tab: tab)
     }
 }
 

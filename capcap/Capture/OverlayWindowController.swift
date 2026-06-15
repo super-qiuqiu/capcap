@@ -79,6 +79,9 @@ class OverlayWindowController {
     private let onSuspend: ((SuspendedEditDraft) -> Void)?
     private let postCaptureAction: PostCaptureAction
 
+    /// Active size preset for constrained selection
+    private let sizePreset: SizePreset?
+
     /// Image-edit mode: when set, `activate()` skips the user's drag-to-select
     /// step and immediately opens the editor on the supplied image, sized to
     /// fit the screen with margins.
@@ -152,6 +155,7 @@ class OverlayWindowController {
 
     init(
         postCaptureAction: PostCaptureAction = .edit,
+        sizePreset: SizePreset? = nil,
         onRecordingSelection: ((NSRect, NSScreen) -> Void)? = nil,
         onRequestFocusReturn: (() -> Void)? = nil,
         onSuspend: ((SuspendedEditDraft) -> Void)? = nil,
@@ -162,6 +166,7 @@ class OverlayWindowController {
         self.suspendedDraft = nil
         self.keepsEditorAcrossSpaces = false
         self.postCaptureAction = postCaptureAction
+        self.sizePreset = sizePreset
         self.onRecordingSelection = onRecordingSelection
         self.onRequestFocusReturn = onRequestFocusReturn
         self.onSuspend = onSuspend
@@ -181,6 +186,7 @@ class OverlayWindowController {
         self.suspendedDraft = nil
         self.keepsEditorAcrossSpaces = keepsEditorAcrossSpaces
         self.postCaptureAction = .edit
+        self.sizePreset = nil
         self.onRecordingSelection = nil
         self.onRequestFocusReturn = onRequestFocusReturn
         self.onSuspend = onSuspend
@@ -199,6 +205,7 @@ class OverlayWindowController {
         self.suspendedDraft = suspendedDraft
         self.keepsEditorAcrossSpaces = suspendedDraft.keepsEditorAcrossSpaces
         self.postCaptureAction = .edit
+        self.sizePreset = nil
         self.onRecordingSelection = onRecordingSelection
         self.onRequestFocusReturn = onRequestFocusReturn
         self.onSuspend = onSuspend
@@ -261,6 +268,7 @@ class OverlayWindowController {
             let selectionView = SelectionView(frame: screen.frame)
             selectionView.delegate = self
             selectionView.windowDetector = windowDetector
+            selectionView.sizePreset = sizePreset
             if let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
                let snapshot = screenSnapshots[displayID] {
                 selectionView.backgroundDisplaySnapshot = snapshot

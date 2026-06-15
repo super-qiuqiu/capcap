@@ -27,6 +27,8 @@
 "windowShadowToggleHint" = "Скругляет углы снимков окон и добавляет тень в стиле macOS";
 "windowShadowSizeLabel" = "Размер тени";
 "windowShadowSizeHint" = "Чем больше значение, тем мягче и шире тень — окно словно приподнято выше";
+"settingsMosaicAutoDetectBarcodes" = "Автоопределение QR-кодов";
+"settingsMosaicAutoDetectBarcodesHint" = "Включить QR-коды и штрих-коды в автоопределение";
 
 /* Screenshot shortcut */
 "shortcutHeader" = "Снимок экрана";
@@ -171,6 +173,11 @@
 "tipMarker" = "Маркер";
 "tipMosaic" = "Мозаика";
 "mosaicGranularity" = "Зернистость мозаики";
+"mosaicAutoDetect" = "Автоопределение";
+"mosaicDetecting" = "Определение";
+"mosaicNoRegionsDetected" = "Текст или QR-коды не найдены";
+"mosaicDetectionFailed" = "Сбой определения";
+"mosaicDetectedRegions" = "Обнаружено регионов: %d";
 "tipEraser" = "Ластик";
 "tipMagnifier" = "Лупа";
 "tipNumbered" = "Нумерация";
@@ -503,3 +510,29 @@
 "savePathReveal" = "Показать";
 "chooseRecordingSavePathTitle" = "Выберите путь для записей";
 "chooseScreenshotSavePathTitle" = "Выберите путь для снимков";
+
+/* Size Presets */
+"presetMenuFreeForm" = "Свободный выбор";
+"presetMenuManage" = "Управление пресетами";
+"presetSettingsTitle" = "Пресеты размеров";
+"presetSettingsAddButton" = "Добавить пресет";
+"presetLimitReached" = "Достигнут лимит пресетов";
+"presetFormNameLabel" = "Название";
+"presetFormNamePlaceholder" = "Название пресета";
+"presetFormDefaultName" = "Новый пресет";
+"presetFormTypeLabel" = "Тип";
+"presetFormFixedSize" = "Фиксированный размер";
+"presetFormAspectRatio" = "Соотношение сторон";
+"presetFormWidthLabel" = "Ширина";
+"presetFormHeightLabel" = "Высота";
+"presetFormRatioLabel" = "Соотношение";
+"presetFormLockRatio" = "Зафиксировать соотношение";
+"presetFormPixelsUnit" = "px";
+"presetFormRatioSeparator" = "к";
+"presetFormCommonRatios" = "Частые соотношения";
+"presetFormSaveButton" = "Сохранить";
+"presetFormCancelButton" = "Отменить";
+"presetFormDeleteButton" = "Удалить";
+"presetFormEditButton" = "Изменить";
+"presetFormWindowTitleAdd" = "Добавить пресет";
+"presetFormWindowTitleEdit" = "Изменить пресет";

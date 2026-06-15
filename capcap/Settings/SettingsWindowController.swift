@@ -75,11 +75,12 @@ class SettingsWindowController: NSWindowController {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func showAsSettings(focusingPermissions: Bool? = nil) {
+    func showAsSettings(tab: SettingsTab? = nil, focusingPermissions: Bool? = nil) {
         isStartup = false
         settingsView.setStartupMode(false)
-        let shouldFocusPermissions = focusingPermissions ?? !AppPermissions.allRequiredGranted
-        if shouldFocusPermissions {
+        if let tab {
+            settingsView.showTab(tab)
+        } else if focusingPermissions ?? !AppPermissions.allRequiredGranted {
             settingsView.showPermissionsTab()
         }
         resizeWindow(height: 560)

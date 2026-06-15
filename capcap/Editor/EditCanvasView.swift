@@ -691,6 +691,60 @@ class EditCanvasView: NSView {
         return true
     }
 
+    /// Add multiple mosaic regions at once from auto-detection.
+    /// Captured as a single undo operation so the user can roll back all detected regions together.
+    @discardableResult
+    func autoMosaicRegions(_ rects: [NSRect]) -> Int {
+        guard let baseImage = resolveBaseImageForEditing() else { return 0 }
+        let imageSize = bounds.size
+        let sourceSize = baseImage.size
+
+        activeTextField?.commit()
+
+        let regions = rects.compactMap { rect -> MosaicRegion? in
+            let canvasRect = scaledDetectionRect(rect, from: sourceSize, to: imageSize)
+                .intersection(bounds)
+            guard !canvasRect.isNull, canvasRect.width > 2, canvasRect.height > 2 else {
+                return nil
+            }
+            return MosaicTool.createMosaicRegion(
+                rect: canvasRect,
+                imageSize: imageSize,
+                baseImage: baseImage,
+                blockSize: currentMosaicBlockSize
+            )
+        }
+
+        guard !regions.isEmpty else { return 0 }
+
+        recordUndo()
+        annotations.append(contentsOf: regions.map { region in
+            MosaicAnnotation(
+                rect: region.rect,
+                pixelatedImage: region.pixelatedImage,
+                blockSize: currentMosaicBlockSize
+            )
+        })
+
+        needsDisplay = true
+        refreshCursorAtCurrentLocation()
+        return regions.count
+    }
+
+    private func scaledDetectionRect(_ rect: NSRect, from sourceSize: NSSize, to targetSize: NSSize) -> NSRect {
+        guard sourceSize.width > 0, sourceSize.height > 0,
+              targetSize.width > 0, targetSize.height > 0
+        else { return rect }
+        let xScale = targetSize.width / sourceSize.width
+        let yScale = targetSize.height / sourceSize.height
+        return NSRect(
+            x: rect.origin.x * xScale,
+            y: rect.origin.y * yScale,
+            width: rect.width * xScale,
+            height: rect.height * yScale
+        )
+    }
+
     private func fittedInsertedImageSize(for image: NSImage) -> NSSize {
         let imageSize = image.size
         guard imageSize.width > 0, imageSize.height > 0 else { return .zero }

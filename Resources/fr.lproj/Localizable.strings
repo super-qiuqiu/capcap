@@ -27,6 +27,8 @@
 "windowShadowToggleHint" = "Arrondit les coins des captures de fenêtre et ajoute une ombre portée façon macOS";
 "windowShadowSizeLabel" = "Taille de l'ombre";
 "windowShadowSizeHint" = "Des valeurs élevées adoucissent et élargissent l'ombre : la fenêtre semble flotter plus haut";
+"settingsMosaicAutoDetectBarcodes" = "Détecter automatiquement les codes QR";
+"settingsMosaicAutoDetectBarcodesHint" = "Inclure les codes QR et codes-barres dans la détection automatique";
 
 /* Screenshot shortcut */
 "shortcutHeader" = "Capture d'écran";
@@ -171,6 +173,11 @@
 "tipMarker" = "Surligneur";
 "tipMosaic" = "Mosaïque";
 "mosaicGranularity" = "Granularité de la mosaïque";
+"mosaicAutoDetect" = "Détection auto";
+"mosaicDetecting" = "Détection";
+"mosaicNoRegionsDetected" = "Aucun texte ni code QR détecté";
+"mosaicDetectionFailed" = "Échec de la détection";
+"mosaicDetectedRegions" = "%d région(s) détectée(s)";
 "tipEraser" = "Gomme";
 "tipMagnifier" = "Loupe";
 "tipNumbered" = "Numéro";
@@ -503,3 +510,29 @@
 "savePathReveal" = "Afficher";
 "chooseRecordingSavePathTitle" = "Choisir le chemin d'enregistrement";
 "chooseScreenshotSavePathTitle" = "Choisir le chemin des captures";
+
+/* Size Presets */
+"presetMenuFreeForm" = "Sélection libre";
+"presetMenuManage" = "Gérer les préréglages";
+"presetSettingsTitle" = "Préréglages de taille";
+"presetSettingsAddButton" = "Ajouter un préréglage";
+"presetLimitReached" = "Limite de préréglages atteinte";
+"presetFormNameLabel" = "Nom";
+"presetFormNamePlaceholder" = "Nom du préréglage";
+"presetFormDefaultName" = "Nouveau préréglage";
+"presetFormTypeLabel" = "Type";
+"presetFormFixedSize" = "Taille fixe";
+"presetFormAspectRatio" = "Rapport d'aspect";
+"presetFormWidthLabel" = "Largeur";
+"presetFormHeightLabel" = "Hauteur";
+"presetFormRatioLabel" = "Ratio";
+"presetFormLockRatio" = "Verrouiller le ratio";
+"presetFormPixelsUnit" = "px";
+"presetFormRatioSeparator" = "à";
+"presetFormCommonRatios" = "Ratios courants";
+"presetFormSaveButton" = "Enregistrer";
+"presetFormCancelButton" = "Annuler";
+"presetFormDeleteButton" = "Supprimer";
+"presetFormEditButton" = "Modifier";
+"presetFormWindowTitleAdd" = "Ajouter un préréglage";
+"presetFormWindowTitleEdit" = "Modifier le préréglage";

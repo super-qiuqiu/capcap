@@ -8,6 +8,7 @@ enum SettingsTab: CaseIterable {
     case general
     case shortcuts
     case toolbar
+    case presets
     case upload
     case translation
     case permissions
@@ -18,6 +19,7 @@ enum SettingsTab: CaseIterable {
         case .general: return L10n.settingsTabGeneral
         case .shortcuts: return L10n.settingsTabShortcuts
         case .toolbar: return L10n.settingsTabToolbar
+        case .presets: return L10n.presetSettingsTitle
         case .upload: return L10n.settingsTabUpload
         case .translation: return L10n.settingsTabTranslation
         case .permissions: return L10n.settingsTabPermissions
@@ -30,6 +32,7 @@ enum SettingsTab: CaseIterable {
         case .general: return "gearshape.fill"
         case .shortcuts: return "keyboard"
         case .toolbar: return "slider.horizontal.3"
+        case .presets: return "aspectratio"
         case .upload: return "icloud.and.arrow.up.fill"
         case .translation: return "character.bubble.fill"
         case .permissions: return "lock.shield.fill"
@@ -42,6 +45,7 @@ enum SettingsTab: CaseIterable {
         case .general: return NSColor(calibratedRed: 0.62, green: 0.66, blue: 0.72, alpha: 1.0)
         case .shortcuts: return NSColor(calibratedRed: 0.36, green: 0.66, blue: 0.98, alpha: 1.0)
         case .toolbar: return NSColor(calibratedRed: 0.95, green: 0.54, blue: 0.62, alpha: 1.0)
+        case .presets: return NSColor(calibratedRed: 0.50, green: 0.70, blue: 0.95, alpha: 1.0)
         case .upload: return NSColor(calibratedRed: 0.99, green: 0.72, blue: 0.32, alpha: 1.0)
         case .translation: return NSColor(calibratedRed: 0.38, green: 0.80, blue: 0.78, alpha: 1.0)
         case .permissions: return NSColor(calibratedRed: 0.36, green: 0.78, blue: 0.50, alpha: 1.0)
@@ -226,6 +230,9 @@ class SettingsView: NSView {
     private var pinAcrossSpacesSubtitleLabel: NSTextField!
     private var doubleClickSelectionCopyTitleLabel: NSTextField!
     private var doubleClickSelectionCopySubtitleLabel: NSTextField!
+    private var mosaicAutoDetectBarcodesTitleLabel: NSTextField!
+    private var mosaicAutoDetectBarcodesHintLabel: NSTextField?
+    private var mosaicAutoDetectBarcodesSwitch: NSSwitch!
     private var langTitleLabel: NSTextField!
     private var historyCacheToggleTitleLabel: NSTextField!
     private var historyCacheToggleHintLabel: NSTextField?
@@ -391,6 +398,7 @@ class SettingsView: NSView {
         paneViews[.general] = buildGeneralPane()
         paneViews[.shortcuts] = buildShortcutsPane()
         paneViews[.toolbar] = buildToolbarPane()
+        paneViews[.presets] = buildPresetsPane()
         paneViews[.upload] = buildUploadPane()
         paneViews[.translation] = buildTranslationPane()
         paneViews[.permissions] = buildPermissionsPane()
@@ -668,6 +676,8 @@ class SettingsView: NSView {
 
         buildWindowShadowCard(into: stack)
 
+        addMosaicAutoDetectCard(to: stack)
+
         buildHistoryAndCountdownCards(into: stack)
 
         let filenameCard = FilenameRuleCard()
@@ -760,6 +770,33 @@ class SettingsView: NSView {
 
         stack.addArrangedSubview(card)
         card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+    }
+
+    private func addMosaicAutoDetectCard(to stack: NSStackView) {
+        let card = CardView()
+        let inner = verticalInnerStack()
+        card.addSubview(inner)
+        pin(inner, to: card, insets: NSEdgeInsets(top: 6, left: 14, bottom: 6, right: 14))
+
+        // Barcode detection toggle
+        let toggle = makeToggleRow(
+            title: L10n.settingsMosaicAutoDetectBarcodes,
+            subtitle: L10n.settingsMosaicAutoDetectBarcodesHint,
+            isOn: Defaults.autoMosaicDetectBarcodes,
+            action: #selector(mosaicAutoDetectBarcodesToggled(_:))
+        )
+        mosaicAutoDetectBarcodesTitleLabel = toggle.title
+        mosaicAutoDetectBarcodesHintLabel = toggle.subtitle
+        mosaicAutoDetectBarcodesSwitch = toggle.toggle
+        inner.addArrangedSubview(toggle.row)
+        toggle.row.widthAnchor.constraint(equalTo: inner.widthAnchor).isActive = true
+
+        stack.addArrangedSubview(card)
+        card.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+    }
+
+    @objc private func mosaicAutoDetectBarcodesToggled(_ sender: NSSwitch) {
+        Defaults.autoMosaicDetectBarcodes = sender.state == .on
     }
 
     /// Dim and disable the size controls when the shadow toggle is off.
@@ -1329,6 +1366,21 @@ class SettingsView: NSView {
         let host = NSView()
         host.translatesAutoresizingMaskIntoConstraints = false
         let pane = ToolbarSettingsPane()
+        host.addSubview(pane)
+        NSLayoutConstraint.activate([
+            pane.topAnchor.constraint(equalTo: host.topAnchor),
+            pane.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            pane.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            pane.bottomAnchor.constraint(equalTo: host.bottomAnchor),
+        ])
+        return host
+    }
+
+    private func buildPresetsPane() -> NSView {
+        let host = NSView()
+        host.translatesAutoresizingMaskIntoConstraints = false
+        let pane = PresetSettingsPane()
+        pane.translatesAutoresizingMaskIntoConstraints = false
         host.addSubview(pane)
         NSLayoutConstraint.activate([
             pane.topAnchor.constraint(equalTo: host.topAnchor),
@@ -2330,6 +2382,10 @@ class SettingsView: NSView {
 
     func showPermissionsTab() {
         selectTab(.permissions)
+    }
+
+    func showTab(_ tab: SettingsTab) {
+        selectTab(tab)
     }
 
     // MARK: - Permission polling
@@ -4241,6 +4297,9 @@ class SettingsView: NSView {
         doubleClickSelectionCopyTitleLabel?.stringValue = L10n.doubleClickSelectionCopy
         doubleClickSelectionCopySubtitleLabel?.stringValue = L10n.doubleClickSelectionCopyHint
         doubleClickSelectionCopySwitch?.state = Defaults.doubleClickSelectionCopyEnabled ? .on : .off
+        mosaicAutoDetectBarcodesTitleLabel?.stringValue = L10n.settingsMosaicAutoDetectBarcodes
+        mosaicAutoDetectBarcodesHintLabel?.stringValue = L10n.settingsMosaicAutoDetectBarcodesHint
+        mosaicAutoDetectBarcodesSwitch?.state = Defaults.autoMosaicDetectBarcodes ? .on : .off
         langTitleLabel?.stringValue = L10n.languageHeader
         filenameRuleCard?.refreshLocalization()
         savePathTitleLabel?.stringValue = L10n.savePathTitle

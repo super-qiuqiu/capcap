@@ -775,6 +775,9 @@ class EditWindowController {
         view.onBlockSizeEnded = { [weak self] in
             self?.canvasView?.commitSelectionAdjustment()
         }
+        view.onAutoDetect = { [weak self] in
+            self?.handleAutoDetectMosaic()
+        }
         styleFloatingHUD(view)
         hostSelectionView.addSubview(view)
         subToolbarView = view
@@ -1671,6 +1674,52 @@ class EditWindowController {
             if self.toolUsesPickedColorSwatch(self.activeTool) {
                 self.showSubToolbar(for: self.activeTool)
             }
+        }
+    }
+
+    private func handleAutoDetectMosaic() {
+        guard let canvasView, let baseImage = canvasView.resolveBaseImageForEditing() else {
+            return
+        }
+
+        // Show progress indicator
+        if let mosaicSubToolbar = subToolbarView as? MosaicSubToolbar {
+            mosaicSubToolbar.setDetecting(true)
+        }
+
+        AutoMosaicDetector.detectSensitiveRegions(
+            in: baseImage,
+            detectText: true,
+            detectBarcodes: Defaults.autoMosaicDetectBarcodes
+        ) { [weak self] result in
+            guard let self else { return }
+
+            // Hide progress indicator
+            if let mosaicSubToolbar = self.subToolbarView as? MosaicSubToolbar {
+                mosaicSubToolbar.setDetecting(false)
+            }
+
+            switch result {
+            case .success(let rects):
+                guard !rects.isEmpty else {
+                    ToastWindow.show(message: L10n.mosaicNoRegionsDetected, on: self.screen)
+                    self.bringEditorToFront()
+                    return
+                }
+                let createdCount = self.canvasView?.autoMosaicRegions(rects) ?? 0
+                guard createdCount > 0 else {
+                    ToastWindow.show(message: L10n.mosaicNoRegionsDetected, on: self.screen)
+                    self.bringEditorToFront()
+                    return
+                }
+                let message = L10n.mosaicDetectedRegions(createdCount)
+                ToastWindow.show(message: message, on: self.screen)
+
+            case .failure:
+                ToastWindow.show(message: L10n.mosaicDetectionFailed, on: self.screen)
+            }
+
+            self.bringEditorToFront()
         }
     }
 
@@ -3798,12 +3847,17 @@ private class MosaicSubToolbar: NSView {
     var onBlockSizeBegan: (() -> Void)?
     var onBlockSizeChanged: ((CGFloat) -> Void)?
     var onBlockSizeEnded: (() -> Void)?
+    var onAutoDetect: (() -> Void)?
 
     private var slider: HUDSlider!
+    private var autoDetectButton: NSButton!
+    private var progressIndicator: NSProgressIndicator!
 
-    static let preferredWidth: CGFloat = 178
+    static let preferredWidth: CGFloat = 326
     private static let leadingPad: CGFloat = 12
     private static let sliderWidth: CGFloat = 154
+    private static let gap: CGFloat = 8
+    private static let buttonWidth: CGFloat = 132
 
     init(frame: NSRect, currentBlockSize: CGFloat) {
         self.currentBlockSize = Self.clampedBlockSize(currentBlockSize)
@@ -3840,12 +3894,59 @@ private class MosaicSubToolbar: NSView {
         s.onEditingEnded = { [weak self] in self?.onBlockSizeEnded?() }
         addSubview(s)
         slider = s
+        x += Self.sliderWidth + Self.gap
+
+        let btn = NSButton()
+        btn.title = L10n.mosaicAutoDetect
+        btn.toolTip = L10n.mosaicAutoDetect
+        btn.bezelStyle = .rounded
+        btn.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        btn.target = self
+        btn.action = #selector(autoDetectClicked(_:))
+        btn.frame = NSRect(
+            x: x,
+            y: midY - 12,
+            width: Self.buttonWidth,
+            height: 24
+        )
+        addSubview(btn)
+        autoDetectButton = btn
+        x += Self.buttonWidth + 4
+
+        let progress = NSProgressIndicator()
+        progress.style = .spinning
+        progress.controlSize = .small
+        progress.frame = NSRect(
+            x: x,
+            y: midY - 8,
+            width: 16,
+            height: 16
+        )
+        progress.isHidden = true
+        addSubview(progress)
+        progressIndicator = progress
     }
 
     @objc private func sliderChanged(_ sender: HUDSlider) {
         let clamped = Self.clampedBlockSize(CGFloat(sender.doubleValue))
         currentBlockSize = clamped
         onBlockSizeChanged?(clamped)
+    }
+
+    @objc private func autoDetectClicked(_ sender: Any) {
+        onAutoDetect?()
+    }
+
+    func setDetecting(_ detecting: Bool) {
+        autoDetectButton.isEnabled = !detecting
+        autoDetectButton.title = detecting ? L10n.mosaicDetecting : L10n.mosaicAutoDetect
+        if detecting {
+            progressIndicator.isHidden = false
+            progressIndicator.startAnimation(nil)
+        } else {
+            progressIndicator.stopAnimation(nil)
+            progressIndicator.isHidden = true
+        }
     }
 
     private static func clampedBlockSize(_ size: CGFloat) -> CGFloat {
@@ -5280,7 +5381,9 @@ final class SelectionChromeOverlay: NSView {
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
-        guard isActiveAndVisible else { return nil }
+        guard isActiveAndVisible,
+              selectionView?.canResizeCurrentSelection == true
+        else { return nil }
         // `point` is in the superview's coordinate space.
         let local = convert(point, from: superview)
         guard SelectionView.hitTestHandle(
@@ -5294,6 +5397,7 @@ final class SelectionChromeOverlay: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
+        guard selectionView?.canResizeCurrentSelection == true else { return }
         let point = convert(event.locationInWindow, from: nil)
         guard let handle = SelectionView.hitTestHandle(
             point: point,
@@ -5306,7 +5410,10 @@ final class SelectionChromeOverlay: NSView {
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard let handle = dragHandle, let selectionView else { return }
+        guard let handle = dragHandle,
+              let selectionView,
+              selectionView.canResizeCurrentSelection
+        else { return }
         let point = convert(event.locationInWindow, from: nil)
         selectionView.resizeByExternalDrag(
             handle: handle,
@@ -5322,7 +5429,9 @@ final class SelectionChromeOverlay: NSView {
     }
 
     override func mouseMoved(with event: NSEvent) {
-        guard isActiveAndVisible else { return }
+        guard isActiveAndVisible,
+              selectionView?.canResizeCurrentSelection == true
+        else { return }
         let point = convert(event.locationInWindow, from: nil)
         if let handle = SelectionView.hitTestHandle(
             point: point,
@@ -5364,19 +5473,25 @@ final class SelectionChromeOverlay: NSView {
         context.stroke(rect.insetBy(dx: -1, dy: -1))
         context.setLineDash(phase: 0, lengths: [])
 
-        for pos in SelectionView.handlePositions(for: rect) {
-            let handleRect = NSRect(
-                x: pos.x - handleSize / 2,
-                y: pos.y - handleSize / 2,
-                width: handleSize,
-                height: handleSize
-            )
-            context.setFillColor(accentColor.cgColor)
-            context.fillEllipse(in: handleRect)
+        if selectionView?.canResizeCurrentSelection == true {
+            for pos in SelectionView.handlePositions(for: rect) {
+                let handleRect = NSRect(
+                    x: pos.x - handleSize / 2,
+                    y: pos.y - handleSize / 2,
+                    width: handleSize,
+                    height: handleSize
+                )
+                context.setFillColor(accentColor.cgColor)
+                context.fillEllipse(in: handleRect)
+            }
         }
 
         // The SelectionView draws its own size label underneath, but the
         // beautify gradient frame covers it. Re-draw it here, above the frame.
-        SelectionView.drawSizeLabel(context: context, rect: rect)
+        SelectionView.drawSizeLabel(
+            context: context,
+            rect: rect,
+            text: selectionView?.sizeLabelText(for: rect)
+        )
     }
 }

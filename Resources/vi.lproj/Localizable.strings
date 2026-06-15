@@ -27,6 +27,8 @@
 "windowShadowToggleHint" = "Bo góc ảnh chụp cửa sổ và thêm bóng đổ kiểu macOS";
 "windowShadowSizeLabel" = "Kích thước bóng";
 "windowShadowSizeHint" = "Giá trị lớn hơn làm bóng mờ mềm hơn và lan rộng hơn, khiến cửa sổ trông nổi cao hơn";
+"settingsMosaicAutoDetectBarcodes" = "Tự động phát hiện mã QR";
+"settingsMosaicAutoDetectBarcodesHint" = "Bao gồm mã QR và mã vạch trong phát hiện tự động";
 
 /* Screenshot shortcut */
 "shortcutHeader" = "Chụp màn hình";
@@ -171,6 +173,11 @@
 "tipMarker" = "Bút đánh dấu";
 "tipMosaic" = "Làm mờ mosaic";
 "mosaicGranularity" = "Độ hạt mosaic";
+"mosaicAutoDetect" = "Tự động phát hiện";
+"mosaicDetecting" = "Đang phát hiện";
+"mosaicNoRegionsDetected" = "Không phát hiện văn bản hoặc mã QR";
+"mosaicDetectionFailed" = "Phát hiện thất bại";
+"mosaicDetectedRegions" = "Đã phát hiện %d vùng";
 "tipEraser" = "Tẩy";
 "tipMagnifier" = "Kính lúp";
 "tipNumbered" = "Đánh số";
@@ -503,3 +510,29 @@
 "savePathReveal" = "Hiện";
 "chooseRecordingSavePathTitle" = "Chọn đường dẫn lưu bản ghi";
 "chooseScreenshotSavePathTitle" = "Chọn đường dẫn lưu ảnh chụp";
+
+/* Size Presets */
+"presetMenuFreeForm" = "Chọn tự do";
+"presetMenuManage" = "Quản lý cài đặt sẵn";
+"presetSettingsTitle" = "Cài đặt sẵn kích thước";
+"presetSettingsAddButton" = "Thêm cài đặt sẵn";
+"presetLimitReached" = "Đã đạt giới hạn cài đặt sẵn";
+"presetFormNameLabel" = "Tên";
+"presetFormNamePlaceholder" = "Tên cài đặt sẵn";
+"presetFormDefaultName" = "Cài đặt sẵn mới";
+"presetFormTypeLabel" = "Loại";
+"presetFormFixedSize" = "Kích thước cố định";
+"presetFormAspectRatio" = "Tỷ lệ khung hình";
+"presetFormWidthLabel" = "Chiều rộng";
+"presetFormHeightLabel" = "Chiều cao";
+"presetFormRatioLabel" = "Tỷ lệ";
+"presetFormLockRatio" = "Khóa tỷ lệ";
+"presetFormPixelsUnit" = "px";
+"presetFormRatioSeparator" = "với";
+"presetFormCommonRatios" = "Tỷ lệ thường dùng";
+"presetFormSaveButton" = "Lưu";
+"presetFormCancelButton" = "Hủy";
+"presetFormDeleteButton" = "Xóa";
+"presetFormEditButton" = "Chỉnh sửa";
+"presetFormWindowTitleAdd" = "Thêm cài đặt sẵn";
+"presetFormWindowTitleEdit" = "Chỉnh sửa cài đặt sẵn";

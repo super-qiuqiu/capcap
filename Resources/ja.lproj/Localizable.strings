@@ -27,6 +27,8 @@
 "windowShadowToggleHint" = "ウインドウを選んで撮影すると角を丸め、macOS 風のドロップシャドウを追加します";
 "windowShadowSizeLabel" = "影のサイズ";
 "windowShadowSizeHint" = "値を大きくするほど影が柔らかく広がり、ウインドウが高く浮いて見えます";
+"settingsMosaicAutoDetectBarcodes" = "QRコードを自動検出";
+"settingsMosaicAutoDetectBarcodesHint" = "自動検出にQRコードとバーコードを含める";
 
 /* Screenshot shortcut */
 "shortcutHeader" = "スクリーンショット";
@@ -171,6 +173,11 @@
 "tipMarker" = "マーカー";
 "tipMosaic" = "モザイク";
 "mosaicGranularity" = "モザイク粒度";
+"mosaicAutoDetect" = "自動検出";
+"mosaicDetecting" = "検出中";
+"mosaicNoRegionsDetected" = "テキストまたはQRコードが検出されません";
+"mosaicDetectionFailed" = "検出に失敗";
+"mosaicDetectedRegions" = "%d 個の領域を検出";
 "tipEraser" = "消しゴム";
 "tipMagnifier" = "拡大鏡";
 "tipNumbered" = "番号";
@@ -503,3 +510,29 @@
 "savePathReveal" = "表示";
 "chooseRecordingSavePathTitle" = "録画の保存先を選択";
 "chooseScreenshotSavePathTitle" = "スクリーンショットの保存先を選択";
+
+/* Size Presets */
+"presetMenuFreeForm" = "自由選択";
+"presetMenuManage" = "プリセットを管理";
+"presetSettingsTitle" = "サイズプリセット";
+"presetSettingsAddButton" = "プリセットを追加";
+"presetLimitReached" = "プリセット数が上限に達しました";
+"presetFormNameLabel" = "名前";
+"presetFormNamePlaceholder" = "プリセット名";
+"presetFormDefaultName" = "新規プリセット";
+"presetFormTypeLabel" = "タイプ";
+"presetFormFixedSize" = "固定サイズ";
+"presetFormAspectRatio" = "アスペクト比";
+"presetFormWidthLabel" = "幅";
+"presetFormHeightLabel" = "高さ";
+"presetFormRatioLabel" = "比率";
+"presetFormLockRatio" = "比率を固定";
+"presetFormPixelsUnit" = "px";
+"presetFormRatioSeparator" = "対";
+"presetFormCommonRatios" = "よく使う比率";
+"presetFormSaveButton" = "保存";
+"presetFormCancelButton" = "キャンセル";
+"presetFormDeleteButton" = "削除";
+"presetFormEditButton" = "編集";
+"presetFormWindowTitleAdd" = "プリセットを追加";
+"presetFormWindowTitleEdit" = "プリセットを編集";

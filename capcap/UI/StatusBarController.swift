@@ -9,6 +9,7 @@ class StatusBarController: NSObject {
     private let onMergeImages: () -> Void
     private let onColorPicker: () -> Void
     private let onOpenSettings: () -> Void
+    private let onOpenPresetSettings: () -> Void
     private var historyMenu: NSMenu?
     private var historyItem: NSMenuItem?
 
@@ -18,7 +19,8 @@ class StatusBarController: NSObject {
         onRecord: @escaping () -> Void,
         onMergeImages: @escaping () -> Void,
         onColorPicker: @escaping () -> Void,
-        onOpenSettings: @escaping () -> Void
+        onOpenSettings: @escaping () -> Void,
+        onOpenPresetSettings: @escaping () -> Void
     ) {
         self.onTakeScreenshot = onTakeScreenshot
         self.onTakeFullScreenScreenshot = onTakeFullScreenScreenshot
@@ -26,6 +28,7 @@ class StatusBarController: NSObject {
         self.onMergeImages = onMergeImages
         self.onColorPicker = onColorPicker
         self.onOpenSettings = onOpenSettings
+        self.onOpenPresetSettings = onOpenPresetSettings
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         statusItem.isVisible = true
@@ -52,6 +55,12 @@ class StatusBarController: NSObject {
         NotificationCenter.default.addObserver(forName: .hotkeyDidChange, object: nil, queue: .main) { [weak self] _ in
             self?.setupMenu()
         }
+        NotificationCenter.default.addObserver(forName: .sizePresetsDidChange, object: nil, queue: .main) { [weak self] _ in
+            self?.setupMenu()
+        }
+        NotificationCenter.default.addObserver(forName: .activeSizePresetDidChange, object: nil, queue: .main) { [weak self] _ in
+            self?.setupMenu()
+        }
         NotificationCenter.default.addObserver(forName: .updateStateDidChange, object: nil, queue: .main) { [weak self] _ in
             self?.setupMenu()
             self?.syncUpdateProgressHUD()
@@ -61,10 +70,46 @@ class StatusBarController: NSObject {
     private func setupMenu() {
         let menu = NSMenu()
 
-        let screenshotItem = NSMenuItem(title: L10n.takeScreenshot, action: #selector(takeScreenshot), keyEquivalent: "")
-        screenshotItem.target = self
+        // "Take Screenshot" becomes a submenu with preset options
+        let screenshotItem = NSMenuItem(title: L10n.takeScreenshot, action: nil, keyEquivalent: "")
         screenshotItem.image = Self.menuIcon(systemName: "crop")
-        HotkeyManager.applyToMenuItem(screenshotItem)
+        let screenshotSubmenu = NSMenu(title: L10n.takeScreenshot)
+        screenshotItem.submenu = screenshotSubmenu
+
+        // Free-form option (default, no preset)
+        let freeFormItem = NSMenuItem(title: L10n.presetMenuFreeForm, action: #selector(selectPreset(_:)), keyEquivalent: "")
+        freeFormItem.target = self
+        freeFormItem.representedObject = nil  // nil preset = free-form
+        HotkeyManager.applyToMenuItem(freeFormItem)
+        let activePresetID = Defaults.activeSizePreset?.id
+        if activePresetID == nil {
+            freeFormItem.state = .on
+        }
+        screenshotSubmenu.addItem(freeFormItem)
+
+        // User presets
+        let presets = Defaults.sizePresets
+        if !presets.isEmpty {
+            screenshotSubmenu.addItem(NSMenuItem.separator())
+            for preset in presets {
+                let presetItem = NSMenuItem(title: preset.name, action: #selector(selectPreset(_:)), keyEquivalent: "")
+                presetItem.target = self
+                presetItem.representedObject = preset.id
+                presetItem.toolTip = preset.constraint.displayName
+                if activePresetID == preset.id {
+                    presetItem.state = .on
+                }
+                screenshotSubmenu.addItem(presetItem)
+            }
+        }
+
+        // Manage Presets option
+        screenshotSubmenu.addItem(NSMenuItem.separator())
+        let manageItem = NSMenuItem(title: L10n.presetMenuManage, action: #selector(managePresets), keyEquivalent: "")
+        manageItem.target = self
+        manageItem.image = Self.menuIcon(systemName: "slider.horizontal.3")
+        screenshotSubmenu.addItem(manageItem)
+
         menu.addItem(screenshotItem)
 
         let fullScreenItem = NSMenuItem(title: L10n.takeFullScreenScreenshot, action: #selector(takeFullScreenScreenshot), keyEquivalent: "")
@@ -157,6 +202,20 @@ class StatusBarController: NSObject {
 
     @objc private func takeScreenshot() {
         onTakeScreenshot()
+    }
+
+    @objc private func selectPreset(_ sender: NSMenuItem) {
+        if let presetID = sender.representedObject as? UUID {
+            Defaults.activeSizePresetID = presetID
+        } else {
+            // Free-form mode
+            Defaults.activeSizePresetID = nil
+        }
+        onTakeScreenshot()
+    }
+
+    @objc private func managePresets() {
+        onOpenPresetSettings()
     }
 
     @objc private func takeFullScreenScreenshot() {

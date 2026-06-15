@@ -27,6 +27,8 @@
 "windowShadowToggleHint" = "Round the corners of window captures and add a macOS-style drop shadow";
 "windowShadowSizeLabel" = "Shadow Size";
 "windowShadowSizeHint" = "Larger values blur softer and spread wider, so the window appears to float higher";
+"settingsMosaicAutoDetectBarcodes" = "Auto-detect QR codes";
+"settingsMosaicAutoDetectBarcodesHint" = "Include QR codes and barcodes in auto-detection";
 
 /* Screenshot shortcut */
 "shortcutHeader" = "Screenshot";
@@ -171,6 +173,11 @@
 "tipMarker" = "Marker";
 "tipMosaic" = "Mosaic";
 "mosaicGranularity" = "Mosaic Granularity";
+"mosaicAutoDetect" = "Auto Detect";
+"mosaicDetecting" = "Detecting";
+"mosaicNoRegionsDetected" = "No text or codes detected";
+"mosaicDetectionFailed" = "Detection failed";
+"mosaicDetectedRegions" = "%d region(s) detected";
 "tipEraser" = "Eraser";
 "tipMagnifier" = "Magnifier";
 "tipNumbered" = "Numbered";
@@ -490,6 +497,32 @@
 "imageMergeEmptyTitle" = "Drop images to merge";
 "imageMergeEmptyBody" = "Add files, paste from clipboard, or drag images here";
 "imageMergeClipboardSourceName" = "Clipboard Image";
+
+/* Size Presets */
+"presetMenuFreeForm" = "Free-form";
+"presetMenuManage" = "Manage Presets";
+"presetSettingsTitle" = "Size Presets";
+"presetSettingsAddButton" = "Add Preset";
+"presetLimitReached" = "Preset limit reached";
+"presetFormNameLabel" = "Name";
+"presetFormNamePlaceholder" = "Preset name";
+"presetFormDefaultName" = "New Preset";
+"presetFormTypeLabel" = "Type";
+"presetFormFixedSize" = "Fixed Size";
+"presetFormAspectRatio" = "Aspect Ratio";
+"presetFormWidthLabel" = "Width";
+"presetFormHeightLabel" = "Height";
+"presetFormRatioLabel" = "Ratio";
+"presetFormLockRatio" = "Lock Ratio";
+"presetFormPixelsUnit" = "px";
+"presetFormRatioSeparator" = "to";
+"presetFormCommonRatios" = "Common Ratios";
+"presetFormSaveButton" = "Save";
+"presetFormCancelButton" = "Cancel";
+"presetFormDeleteButton" = "Delete";
+"presetFormEditButton" = "Edit";
+"presetFormWindowTitleAdd" = "Add Preset";
+"presetFormWindowTitleEdit" = "Edit Preset";
 
 /* Save paths */
 "savePathTitle" = "Save paths";

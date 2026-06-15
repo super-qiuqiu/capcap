@@ -66,6 +66,8 @@ extension Notification.Name {
     static let historyDidUpdate = Notification.Name("capcap.historyDidUpdate")
     static let hotkeyDidChange = Notification.Name("capcap.hotkeyDidChange")
     static let translationConfigDidChange = Notification.Name("capcap.translationConfigDidChange")
+    static let sizePresetsDidChange = Notification.Name("capcap.sizePresetsDidChange")
+    static let activeSizePresetDidChange = Notification.Name("capcap.activeSizePresetDidChange")
 }
 
 /// Centralized accessor for every user-facing string. Each property resolves a
@@ -103,6 +105,8 @@ enum L10n {
     static var windowShadowToggleHint: String { s("windowShadowToggleHint") }
     static var windowShadowSizeLabel: String { s("windowShadowSizeLabel") }
     static var windowShadowSizeHint: String { s("windowShadowSizeHint") }
+    static var settingsMosaicAutoDetectBarcodes: String { s("settingsMosaicAutoDetectBarcodes") }
+    static var settingsMosaicAutoDetectBarcodesHint: String { s("settingsMosaicAutoDetectBarcodesHint") }
     static var savePathTitle: String { s("savePathTitle") }
     static var savePathSubtitle: String { s("savePathSubtitle") }
     static var autoRevealSavedFilesLabel: String { s("autoRevealSavedFilesLabel") }
@@ -284,6 +288,13 @@ enum L10n {
     static var tipMarker: String { s("tipMarker") }
     static var tipMosaic: String { s("tipMosaic") }
     static var mosaicGranularity: String { s("mosaicGranularity") }
+    static var mosaicAutoDetect: String { s("mosaicAutoDetect") }
+    static var mosaicDetecting: String { s("mosaicDetecting") }
+    static var mosaicNoRegionsDetected: String { s("mosaicNoRegionsDetected") }
+    static var mosaicDetectionFailed: String { s("mosaicDetectionFailed") }
+    static func mosaicDetectedRegions(_ count: Int) -> String {
+        String(format: s("mosaicDetectedRegions"), count)
+    }
     static var tipEraser: String { s("tipEraser") }
     static var tipMagnifier: String { s("tipMagnifier") }
     static var tipNumbered: String { s("tipNumbered") }
@@ -632,6 +643,32 @@ enum L10n {
     static var imageMergeEmptyTitle: String { s("imageMergeEmptyTitle") }
     static var imageMergeEmptyBody: String { s("imageMergeEmptyBody") }
     static var imageMergeClipboardSourceName: String { s("imageMergeClipboardSourceName") }
+
+    // Size Presets
+    static var presetMenuFreeForm: String { s("presetMenuFreeForm") }
+    static var presetMenuManage: String { s("presetMenuManage") }
+    static var presetSettingsTitle: String { s("presetSettingsTitle") }
+    static var presetSettingsAddButton: String { s("presetSettingsAddButton") }
+    static var presetLimitReached: String { s("presetLimitReached") }
+    static var presetFormNameLabel: String { s("presetFormNameLabel") }
+    static var presetFormNamePlaceholder: String { s("presetFormNamePlaceholder") }
+    static var presetFormDefaultName: String { s("presetFormDefaultName") }
+    static var presetFormTypeLabel: String { s("presetFormTypeLabel") }
+    static var presetFormFixedSize: String { s("presetFormFixedSize") }
+    static var presetFormAspectRatio: String { s("presetFormAspectRatio") }
+    static var presetFormWidthLabel: String { s("presetFormWidthLabel") }
+    static var presetFormHeightLabel: String { s("presetFormHeightLabel") }
+    static var presetFormRatioLabel: String { s("presetFormRatioLabel") }
+    static var presetFormLockRatio: String { s("presetFormLockRatio") }
+    static var presetFormPixelsUnit: String { s("presetFormPixelsUnit") }
+    static var presetFormRatioSeparator: String { s("presetFormRatioSeparator") }
+    static var presetFormCommonRatios: String { s("presetFormCommonRatios") }
+    static var presetFormSaveButton: String { s("presetFormSaveButton") }
+    static var presetFormCancelButton: String { s("presetFormCancelButton") }
+    static var presetFormDeleteButton: String { s("presetFormDeleteButton") }
+    static var presetFormEditButton: String { s("presetFormEditButton") }
+    static var presetFormWindowTitleAdd: String { s("presetFormWindowTitleAdd") }
+    static var presetFormWindowTitleEdit: String { s("presetFormWindowTitleEdit") }
 }
 
 struct Defaults {
@@ -1371,6 +1408,11 @@ struct Defaults {
     static let mosaicBlockSizeMin: Double = 4
     static let mosaicBlockSizeMax: Double = 48
 
+    static var autoMosaicDetectBarcodes: Bool {
+        get { defaults.bool(forKey: "autoMosaicDetectBarcodes") }
+        set { defaults.set(newValue, forKey: "autoMosaicDetectBarcodes") }
+    }
+
     static let textFontSizeMin: Double = 10
     static let textFontSizeMax: Double = 100
 
@@ -1677,6 +1719,73 @@ struct Defaults {
             if newValue != old {
                 NotificationCenter.default.post(name: .languageDidChange, object: nil)
             }
+        }
+    }
+
+    // MARK: - Size Presets
+
+    private static var deletedBuiltInSizePresetIDs: Set<UUID> {
+        get {
+            let strings = defaults.stringArray(forKey: "deletedBuiltInSizePresetIDs") ?? []
+            return Set(strings.compactMap(UUID.init(uuidString:))).intersection(SizePreset.builtInPresetIDs)
+        }
+        set {
+            let values = newValue
+                .intersection(SizePreset.builtInPresetIDs)
+                .map(\.uuidString)
+                .sorted()
+            defaults.set(values, forKey: "deletedBuiltInSizePresetIDs")
+        }
+    }
+
+    /// All available size presets (built-in + user-created)
+    static var sizePresets: [SizePreset] {
+        get {
+            let deletedBuiltIns = deletedBuiltInSizePresetIDs
+            guard let data = defaults.data(forKey: "sizePresets"),
+                  let presets = try? JSONDecoder().decode([SizePreset].self, from: data)
+            else {
+                return SizePreset.normalized(SizePreset.builtInPresets, deletedBuiltInIDs: deletedBuiltIns)
+            }
+            return SizePreset.normalized(presets, deletedBuiltInIDs: deletedBuiltIns)
+        }
+        set {
+            let presentBuiltInIDs = Set(newValue.map(\.id)).intersection(SizePreset.builtInPresetIDs)
+            let deletedBuiltIns = SizePreset.builtInPresetIDs.subtracting(presentBuiltInIDs)
+            deletedBuiltInSizePresetIDs = deletedBuiltIns
+
+            let normalized = SizePreset.normalized(newValue, deletedBuiltInIDs: deletedBuiltIns)
+            if let activeID = activeSizePresetID,
+               !normalized.contains(where: { $0.id == activeID }) {
+                activeSizePresetID = nil
+            }
+            if let data = try? JSONEncoder().encode(normalized) {
+                defaults.set(data, forKey: "sizePresets")
+                NotificationCenter.default.post(name: .sizePresetsDidChange, object: nil)
+            }
+        }
+    }
+
+    static var activeSizePreset: SizePreset? {
+        guard let id = activeSizePresetID else { return nil }
+        return sizePresets.first(where: { $0.id == id })
+    }
+
+    /// Currently active preset ID (nil means free-form mode)
+    static var activeSizePresetID: UUID? {
+        get {
+            guard let uuidString = defaults.string(forKey: "activeSizePresetID") else {
+                return nil
+            }
+            return UUID(uuidString: uuidString)
+        }
+        set {
+            if let uuid = newValue {
+                defaults.set(uuid.uuidString, forKey: "activeSizePresetID")
+            } else {
+                defaults.removeObject(forKey: "activeSizePresetID")
+            }
+            NotificationCenter.default.post(name: .activeSizePresetDidChange, object: nil)
         }
     }
 }

@@ -27,6 +27,8 @@
 "windowShadowToggleHint" = "点选窗口截图时自动裁出圆角，并加上 macOS 风格的投影";
 "windowShadowSizeLabel" = "阴影大小";
 "windowShadowSizeHint" = "数值越大投影越柔和、扩散越远，窗口看起来悬浮得越高";
+"settingsMosaicAutoDetectBarcodes" = "自动检测二维码";
+"settingsMosaicAutoDetectBarcodesHint" = "在自动检测中包含二维码和条形码";
 
 /* Screenshot shortcut */
 "shortcutHeader" = "截图";
@@ -171,6 +173,11 @@
 "tipMarker" = "高亮笔";
 "tipMosaic" = "马赛克";
 "mosaicGranularity" = "马赛克颗粒度";
+"mosaicAutoDetect" = "自动检测";
+"mosaicDetecting" = "检测中";
+"mosaicNoRegionsDetected" = "未检测到文字或二维码";
+"mosaicDetectionFailed" = "检测失败";
+"mosaicDetectedRegions" = "检测到 %d 个区域";
 "tipEraser" = "橡皮擦";
 "tipMagnifier" = "放大镜";
 "tipNumbered" = "序号";
@@ -503,3 +510,29 @@
 "savePathReveal" = "显示";
 "chooseRecordingSavePathTitle" = "选择录制保存路径";
 "chooseScreenshotSavePathTitle" = "选择截图保存路径";
+
+/* Size Presets */
+"presetMenuFreeForm" = "自由选区";
+"presetMenuManage" = "管理预设";
+"presetSettingsTitle" = "尺寸预设";
+"presetSettingsAddButton" = "添加预设";
+"presetLimitReached" = "预设数量已达上限";
+"presetFormNameLabel" = "名称";
+"presetFormNamePlaceholder" = "预设名称";
+"presetFormDefaultName" = "新预设";
+"presetFormTypeLabel" = "类型";
+"presetFormFixedSize" = "固定尺寸";
+"presetFormAspectRatio" = "宽高比";
+"presetFormWidthLabel" = "宽度";
+"presetFormHeightLabel" = "高度";
+"presetFormRatioLabel" = "比例";
+"presetFormLockRatio" = "锁定比例";
+"presetFormPixelsUnit" = "px";
+"presetFormRatioSeparator" = "比";
+"presetFormCommonRatios" = "常用比例";
+"presetFormSaveButton" = "保存";
+"presetFormCancelButton" = "取消";
+"presetFormDeleteButton" = "删除";
+"presetFormEditButton" = "编辑";
+"presetFormWindowTitleAdd" = "添加预设";
+"presetFormWindowTitleEdit" = "编辑预设";

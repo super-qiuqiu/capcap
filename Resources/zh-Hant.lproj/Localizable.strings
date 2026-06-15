@@ -27,6 +27,8 @@
 "windowShadowToggleHint" = "擷取視窗時裁出圓角，並加上 macOS 風格的陰影";
 "windowShadowSizeLabel" = "陰影大小";
 "windowShadowSizeHint" = "數值越大，陰影越柔和、擴散越遠，視窗看起來越有懸浮感";
+"settingsMosaicAutoDetectBarcodes" = "自動檢測 QR 碼";
+"settingsMosaicAutoDetectBarcodesHint" = "在自動檢測中包含 QR 碼和條碼";
 
 /* Screenshot shortcut */
 "shortcutHeader" = "截圖";
@@ -171,6 +173,11 @@
 "tipMarker" = "螢光筆";
 "tipMosaic" = "馬賽克";
 "mosaicGranularity" = "馬賽克顆粒度";
+"mosaicAutoDetect" = "自動檢測";
+"mosaicDetecting" = "檢測中";
+"mosaicNoRegionsDetected" = "未檢測到文字或 QR 碼";
+"mosaicDetectionFailed" = "檢測失敗";
+"mosaicDetectedRegions" = "檢測到 %d 個區域";
 "tipEraser" = "橡皮擦";
 "tipMagnifier" = "放大鏡";
 "tipNumbered" = "編號";
@@ -503,3 +510,29 @@
 "savePathReveal" = "顯示";
 "chooseRecordingSavePathTitle" = "選擇錄製儲存路徑";
 "chooseScreenshotSavePathTitle" = "選擇截圖儲存路徑";
+
+/* Size Presets */
+"presetMenuFreeForm" = "自由選區";
+"presetMenuManage" = "管理預設";
+"presetSettingsTitle" = "尺寸預設";
+"presetSettingsAddButton" = "新增預設";
+"presetLimitReached" = "預設數量已達上限";
+"presetFormNameLabel" = "名稱";
+"presetFormNamePlaceholder" = "預設名稱";
+"presetFormDefaultName" = "新預設";
+"presetFormTypeLabel" = "類型";
+"presetFormFixedSize" = "固定尺寸";
+"presetFormAspectRatio" = "長寬比";
+"presetFormWidthLabel" = "寬度";
+"presetFormHeightLabel" = "高度";
+"presetFormRatioLabel" = "比例";
+"presetFormLockRatio" = "鎖定比例";
+"presetFormPixelsUnit" = "px";
+"presetFormRatioSeparator" = "比";
+"presetFormCommonRatios" = "常用比例";
+"presetFormSaveButton" = "儲存";
+"presetFormCancelButton" = "取消";
+"presetFormDeleteButton" = "刪除";
+"presetFormEditButton" = "編輯";
+"presetFormWindowTitleAdd" = "新增預設";
+"presetFormWindowTitleEdit" = "編輯預設";
