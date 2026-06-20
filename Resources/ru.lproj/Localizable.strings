@@ -163,6 +163,8 @@
 "recordingPause" = "Пауза";
 "recordingResume" = "Продолжить";
 "colorCopied" = "Цвет %@ скопирован";
+"qrCodeCopied" = "Содержимое QR-кода скопировано";
+"qrCodeNotFound" = "QR-код не найден";
 
 /* Toolbar tooltips */
 "tipRectangle" = "Прямоугольник";
@@ -182,6 +184,7 @@
 "tipMagnifier" = "Лупа";
 "tipNumbered" = "Нумерация";
 "tipText" = "Текст";
+"tipQRCode" = "QR-код";
 "tipEmoji" = "Эмодзи";
 "tipMoreEmoji" = "Больше эмодзи";
 "tipInsertImage" = "Вставить изображение";
@@ -200,6 +203,7 @@
 "tipCancel" = "Отмена";
 "tipConfirm" = "Копировать в буфер";
 "tipScrollCropConfirm" = "Сохранить и редактировать";
+"copyQRCodeContent" = "Скопировать содержимое QR-кода";
 
 /* Beautify */
 "beautify" = "Оформление";
